@@ -4,16 +4,16 @@ import re
 import os.path
 import subprocess
 
-from PySide import QtCore
-from PySide import QtGui
+from vendor.Qt import QtCore, QtGui, QtWidgets
+
 from maya.app.general.mayaMixin import MayaQWidgetBaseMixin
 from maya import OpenMayaUI as omui
 import maya.OpenMaya as om
-from shiboken import wrapInstance
+
 import maya.cmds as cmds
 
 
-class CanvasSizeInputDialog(QtGui.QDialog):
+class CanvasSizeInputDialog(QtWidgets.QDialog):
 
     def __init__(self, *argv, **keywords):
         """init."""
@@ -21,19 +21,19 @@ class CanvasSizeInputDialog(QtGui.QDialog):
         self.setWindowTitle("Input new canvas size")
 
         # スピンボックスを用意
-        self.title = QtGui.QTextEdit(self)
+        self.title = QtWidgets.QTextEdit(self)
         self.title.setMaximumSize(QtCore.QSize(200, 50))
 
         # ダイアログのOK/キャンセルボタンを用意
-        btns = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        btns = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             QtCore.Qt.Horizontal, self)
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)
 
         # 各ウィジェットをレイアウト
-        gl = QtGui.QVBoxLayout()
-        #gl.addWidget(QtGui.QLabel("Input new canvas size", self), 0, 0, 1, 4)
+        gl = QtWidgets.QVBoxLayout()
+        #gl.addWidget(QtWidgets.QLabel("Input new canvas size", self), 0, 0, 1, 4)
         gl.addWidget(self.title, 1, 0)
         gl.addWidget(btns, 2, 3)
         self.setLayout(gl)
@@ -47,10 +47,10 @@ class CanvasSizeInputDialog(QtGui.QDialog):
         dialog = CanvasSizeInputDialog(parent)
         result = dialog.exec_()  # ダイアログを開く
         text = dialog.canvas_size()  # キャンバスサイズを取得
-        return (text, result == QtGui.QDialog.Accepted)
+        return (text, result == QtWidgets.QDialog.Accepted)
 
 
-class ShelfButton(QtGui.QPushButton):
+class ShelfButton(QtWidgets.QPushButton):
 
     def __init__(self, title, parent, code, number):
         super(ShelfButton, self).__init__(title, parent)
@@ -75,7 +75,7 @@ class ShelfButton(QtGui.QPushButton):
 
     def mousePressEvent(self, e):
         # ボタンが押されたときのボタンの色の変化
-        QtGui.QPushButton.mousePressEvent(self, e)
+        QtWidgets.QPushButton.mousePressEvent(self, e)
 
         # 左クリックしたときにコンソールにpress表示
         if e.button() == QtCore.Qt.LeftButton:
@@ -83,7 +83,7 @@ class ShelfButton(QtGui.QPushButton):
             exec(self.code)
 
 
-class SiShelfWeight(MayaQWidgetBaseMixin, QtGui.QDialog):
+class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
     TITLE = "SiShelf"
     URL = ""
 
@@ -96,7 +96,7 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtGui.QDialog):
         self.setWindowTitle(self.TITLE)
 
         # Widget配置
-        #self.layout = QtGui.QGridLayout()
+        #self.layout = QtWidgets.QGridLayout()
         #self.layout.setSpacing(0)
         #self.layout.setDirection(QtCore.Qt.RightToLeft)
 
@@ -125,7 +125,7 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtGui.QDialog):
                 return
 
             btn = ShelfButton(title, self, mimedata.text(), len(self.btn))
-            btn.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+            btn.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
             btn.setObjectName(mimedata.text())
             btn.show()
             btn.move(position)
@@ -159,21 +159,21 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtGui.QDialog):
     # -----------------------
 
 
-
 # #################################################################################################
 # ここから実行関数
 # #################################################################################################
 
 def main():
     # 同名のウインドウが存在したら削除
-    ptr = omui.MQtUtil.findWindow(SiShelfWeight.TITLE)
-    if ptr:
-        ui = wrapInstance(long(ptr), QtGui.QWidget)
-        ui.deleteLater()
-    app = QtGui.QApplication.instance()
+    ui = {w.objectName(): w for w in QtWidgets.QApplication.topLevelWidgets()}
+    if SiShelfWeight.TITLE in ui:
+        ui[SiShelfWeight.TITLE].close()
+
+    app = QtWidgets.QApplication.instance()
     window = SiShelfWeight()
     window.show()
     #return ui
+
 
 if __name__ == '__main__':
     main()
