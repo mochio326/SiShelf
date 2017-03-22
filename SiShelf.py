@@ -1,54 +1,7 @@
 ## -*- coding: utf-8 -*-
-import sys
-import re
-import os.path
-import subprocess
-
 from vendor.Qt import QtCore, QtGui, QtWidgets
-
 from maya.app.general.mayaMixin import MayaQWidgetBaseMixin
-from maya import OpenMayaUI as omui
-import maya.OpenMaya as om
-
-import maya.cmds as cmds
-
-
-class CanvasSizeInputDialog(QtWidgets.QDialog):
-
-    def __init__(self, *argv, **keywords):
-        """init."""
-        super(CanvasSizeInputDialog, self).__init__(*argv, **keywords)
-        self.setWindowTitle("Input new canvas size")
-
-        # スピンボックスを用意
-        self.title = QtWidgets.QTextEdit(self)
-        self.title.setMaximumSize(QtCore.QSize(200, 50))
-
-        # ダイアログのOK/キャンセルボタンを用意
-        btns = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
-            QtCore.Qt.Horizontal, self)
-        btns.accepted.connect(self.accept)
-        btns.rejected.connect(self.reject)
-
-        # 各ウィジェットをレイアウト
-        gl = QtWidgets.QVBoxLayout()
-        #gl.addWidget(QtWidgets.QLabel("Input new canvas size", self), 0, 0, 1, 4)
-        gl.addWidget(self.title, 1, 0)
-        gl.addWidget(btns, 2, 3)
-        self.setLayout(gl)
-
-    def canvas_size(self):
-        return self.title.toPlainText()
-
-    @staticmethod
-    def get_canvas_size(parent=None):
-        u"""ダイアログを開いてキャンバスサイズとOKキャンセルを返す."""
-        dialog = CanvasSizeInputDialog(parent)
-        result = dialog.exec_()  # ダイアログを開く
-        text = dialog.canvas_size()  # キャンバスサイズを取得
-        return (text, result == QtWidgets.QDialog.Accepted)
-
+import ButtonSetting
 
 class ShelfButton(QtWidgets.QPushButton):
 
@@ -117,7 +70,7 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
         #urllist = mimedata.urls()
 
         if mimedata.hasText() is True or mimedata.hasUrls() is True:
-            title, result = CanvasSizeInputDialog.get_canvas_size(self)
+            title, result = ButtonSetting.SettingDialog.get_canvas_size(self)
             if result is not True:
                 print("Cancel.")
                 return
