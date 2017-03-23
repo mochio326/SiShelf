@@ -2,7 +2,7 @@
 from vendor.Qt import QtCore, QtGui, QtWidgets
 import gui.ButtonSetting_ui
 reload(gui.ButtonSetting_ui)
-
+import ShelfButton
 
 class LineNumberTextEdit(QtWidgets.QTextEdit):
     def __init__(self, parent=None):
@@ -15,21 +15,21 @@ class LineNumberTextEdit(QtWidgets.QTextEdit):
 
     def paintEvent(self, e):
         super(LineNumberTextEdit, self).paintEvent(e)
-        #self.drawEOF()
+        #self.draw_eof()
         if self.side.height() == self.height():
             num = 1
         else:
             num = 0
         self.side.setGeometry(0, 0, self.fontMetrics().width("8") * 8, self.height() + num)
-        self.drawTab()
+        self.draw_tab()
 
     def eventFilter(self, o, e):
         if e.type() == QtCore.QEvent.Paint and o == self.side:
-            self.drawLineNumber(o)
+            self.draw_line_number(o)
             return True
         return False
 
-    def drawEOF(self):
+    def draw_eof(self):
         c = self.textCursor()
         c.movePosition(c.End)
         r = self.cursorRect(c)
@@ -38,7 +38,7 @@ class LineNumberTextEdit(QtWidgets.QTextEdit):
         paint.setFont(self.currentFont())
         paint.drawText(QtCore.QPoint(r.left(), r.bottom() - 3), "[EOF]")
 
-    def drawTab(self):
+    def draw_tab(self):
         tabchar = "›"
         c = self.cursorForPosition(QtCore.QPoint(0, 0))
         paint = QtGui.QPainter()
@@ -55,7 +55,7 @@ class LineNumberTextEdit(QtWidgets.QTextEdit):
             c = self.document().find("	", c)
         paint.end()
 
-    def drawLineNumber(self, o):
+    def draw_line_number(self, o):
         c = self.cursorForPosition(QtCore.QPoint(0, 0))
         block = c.block()
         paint = QtGui.QPainter()
@@ -71,10 +71,8 @@ class LineNumberTextEdit(QtWidgets.QTextEdit):
         paint.end()
 
 class SettingDialog(QtWidgets.QDialog, gui.ButtonSetting_ui.Ui_Form):
-
-    def __init__(self, *argv, **keywords):
-        """init."""
-        super(SettingDialog, self).__init__(*argv, **keywords)
+    def __init__(self, parent, btn_data):
+        super(SettingDialog, self).__init__(parent)
         self.setupUi(self)
         self.setWindowTitle("Button Setting")
 
@@ -90,25 +88,60 @@ class SettingDialog(QtWidgets.QDialog, gui.ButtonSetting_ui.Ui_Form):
         self.text_script_code = LineNumberTextEdit(self)
         self.verticalLayout_4.addWidget(self.text_script_code)
 
-        self.combo_script_language.addItem("MEL")
-        self.combo_script_language.addItem("Python")
+        # データの入力
+        self.text_label.setPlainText(btn_data.label)
+        self.text_script_code.setPlainText(btn_data.code)
+        self.line_icon_file.setText(btn_data.icon_file)
+        self.spinbox_btn_position_x.setValue(btn_data.position_x)
+        self.spinbox_btn_position_y.setValue(btn_data.position_y)
+
+        self.checkbox_fix_size.setChecked(btn_data.fix_size_flag)
+        self.spinbox_btn_size_x.setValue(btn_data.btn_size_x)
+        self.spinbox_btn_size_y.setValue(btn_data.btn_size_y)
+
+        self.checkbox_use_label.setChecked(btn_data.use_label)
+        self.checkbox_use_icon.setChecked(btn_data.use_icon)
+        self.combo_icon_style.setCurrentIndex(btn_data.icon_style)
+
+        self.spinbox_icon_size_x.setValue(btn_data.icon_size_x)
+        self.spinbox_icon_size_y.setValue(btn_data.icon_size_y)
 
     def eventFilter(self,o,e):
         if e.type() == QtCore.QEvent.Paint and o == self.side:
-            self.drawLineNumber(o)
+            self.draw_line_number(o)
             return True
         return False
 
-    def canvas_size(self):
-        return self.title.toPlainText()
+    def get_button_data_instance(self):
+        data = ShelfButton.ButtonData()
+        data.label = self.text_label.toPlainText()
+        data.code = self.text_script_code.toPlainText()
+        data.icon_file = self.line_icon_file.text()
+        data.position_x = self.spinbox_btn_position_x.value()
+        data.position_y = self.spinbox_btn_position_y.value()
+
+        data.fix_size_flag = self.checkbox_fix_size.isChecked()
+        data.btn_size_x = self.spinbox_btn_size_x.value()
+        data.btn_size_y = self.spinbox_btn_size_y.value()
+
+        data.use_label = self.checkbox_use_label.isChecked()
+        data.use_icon = self.checkbox_use_icon.isChecked()
+        data.icon_style = self.combo_icon_style.currentIndex()
+
+        data.icon_size_x = self.spinbox_icon_size_x.value()
+        data.icon_size_y = self.spinbox_icon_size_y.value()
+
+        return data
 
     @staticmethod
-    def get_canvas_size(parent=None):
-        u"""ダイアログを開いてキャンバスサイズとOKキャンセルを返す."""
-        dialog = SettingDialog(parent)
+    def get_data(parent=None, data=None):
+        '''
+        モーダルダイアログを開いてボタン設定とOKキャンセルを返す
+        '''
+        dialog = SettingDialog(parent, data)
         result = dialog.exec_()  # ダイアログを開く
-        text = dialog.canvas_size()  # キャンバスサイズを取得
-        return (text, result == QtWidgets.QDialog.Accepted)
+        data = dialog.get_button_data_instance()
+        return (data, result == QtWidgets.QDialog.Accepted)
 
 
 #-----------------------------------------------------------------------------

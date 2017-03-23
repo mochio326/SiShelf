@@ -2,39 +2,9 @@
 from vendor.Qt import QtCore, QtGui, QtWidgets
 from maya.app.general.mayaMixin import MayaQWidgetBaseMixin
 import ButtonSetting
-
-class ShelfButton(QtWidgets.QPushButton):
-
-    def __init__(self, title, parent, code, number):
-        super(ShelfButton, self).__init__(title, parent)
-        self.title = title
-        self.number = number
-        self.code = code
-
-    def mouseMoveEvent(self, e):
-        # 中クリックだけドラッグ＆ドロップ可能にする
-        if e.buttons() != QtCore.Qt.MidButton:
-            return
-
-        # ドラッグ＆ドロップされるデータ形式を代入
-        mimedata = QtCore.QMimeData()
-
-        drag = QtGui.QDrag(self)
-        drag.setMimeData(mimedata)
-        # ドロップした位置にボタンの左上をセット
-        drag.setHotSpot(e.pos() - self.rect().topLeft())
-        drop_action = drag.exec_(QtCore.Qt.MoveAction)
-
-
-    def mousePressEvent(self, e):
-        # ボタンが押されたときのボタンの色の変化
-        QtWidgets.QPushButton.mousePressEvent(self, e)
-
-        # 左クリックしたときにコンソールにpress表示
-        if e.button() == QtCore.Qt.LeftButton:
-            print('mousePressEvent : ' + self.title)
-            exec(self.code)
-
+import ShelfButton
+reload(ShelfButton)
+reload(ButtonSetting)
 
 class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
     TITLE = "SiShelf"
@@ -48,14 +18,7 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
         self.setObjectName(self.TITLE)
         self.setWindowTitle(self.TITLE)
 
-        # Widget配置
-        #self.layout = QtWidgets.QGridLayout()
-        #self.layout.setSpacing(0)
-        #self.layout.setDirection(QtCore.Qt.RightToLeft)
-
         self.setAcceptDrops(True)
-
-        #self.setLayout(self.layout)
 
         self.resize(400, 150)
         self.btn = []
@@ -70,23 +33,25 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
         #urllist = mimedata.urls()
 
         if mimedata.hasText() is True or mimedata.hasUrls() is True:
-            title, result = ButtonSetting.SettingDialog.get_canvas_size(self)
+            btn_data = ShelfButton.ButtonData()
+
+            if mimedata.hasText() is True:
+                btn_data.code = mimedata.text()
+                btn_data.label = 'newButton' + str(len(self.btn))
+                btn_data.position = position
+
+            btn_data, result = ButtonSetting.SettingDialog.get_data(self, btn_data)
             if result is not True:
                 print("Cancel.")
                 return
-            if title == '':
+            if btn_data.label == '':
                 return
 
-            btn = ShelfButton(title, self, mimedata.text(), len(self.btn))
-            btn.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-            btn.setObjectName(mimedata.text())
-            btn.show()
-            btn.move(position)
-            #self.layout.addWidget(btn)
+            btn = ShelfButton.create_button(self, btn_data, len(self.btn))
             self.repaint()
             self.btn.append(btn)
 
-        elif isinstance(event.source(), ShelfButton):
+        elif isinstance(event.source(), ShelfButton.ButtonWidget):
             # ドラッグ後のマウスの位置にボタンを配置
             self.btn[event.source().number].move(position)
 
@@ -103,7 +68,7 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
         mime = event.mimeData()
         if mime.hasText() is True or mime.hasUrls() is True:
             event.accept()
-        elif isinstance(event.source(), ShelfButton):
+        elif isinstance(event.source(), ShelfButton.ButtonWidget):
             event.accept()
         else:
             event.ignore()
