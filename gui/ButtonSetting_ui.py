@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'C:\Users\owner\Documents\Github\SiShelf\gui\ButtonSetting.ui'
 #
-# Created: Fri Mar 24 04:49:38 2017
+# Created: Sat Mar 25 05:04:21 2017
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!

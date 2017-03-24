@@ -583,9 +583,6 @@ p, li { white-space: pre-wrap; }
            </layout>
           </item>
          </layout>
-         <zorder>verticalLayoutWidget_2</zorder>
-         <zorder>verticalLayoutWidget_2</zorder>
-         <zorder>horizontalLayoutWidget_3</zorder>
         </widget>
        </item>
       </layout>

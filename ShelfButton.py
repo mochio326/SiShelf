@@ -8,9 +8,9 @@ class ButtonWidget(QtWidgets.QToolButton):
         self.btn_data = btn_data
         self.number = number
 
-    def mouseMoveEvent(self, e):
+    def mouseMoveEvent(self, event):
         # 中クリックだけドラッグ＆ドロップ可能にする
-        if e.buttons() != QtCore.Qt.MidButton:
+        if event.buttons() != QtCore.Qt.MidButton:
             return
 
         # ドラッグ＆ドロップされるデータ形式を代入
@@ -19,15 +19,15 @@ class ButtonWidget(QtWidgets.QToolButton):
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimedata)
         # ドロップした位置にボタンの左上をセット
-        drag.setHotSpot(e.pos() - self.rect().topLeft())
+        drag.setHotSpot(event.pos() - self.rect().topLeft())
         drop_action = drag.exec_(QtCore.Qt.MoveAction)
 
-    def mousePressEvent(self, e):
+    def mousePressEvent(self, event):
         # ボタンが押されたときのボタンの色の変化
-        QtWidgets.QPushButton.mousePressEvent(self, e)
+        QtWidgets.QPushButton.mousePressEvent(self, event)
 
         # 左クリックしたときにコンソールにpress表示
-        if e.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.LeftButton:
             print('mousePressEvent : ' + self.btn_data.label)
             exec(self.btn_data.code)
 
@@ -104,7 +104,7 @@ class ButtonData(object):
 def create_button(parent, btn_data, number):
     btn = ButtonWidget(parent, btn_data, number)
     btn.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-    # btn.setObjectName(btn_data.code)
+    btn.setObjectName('button_'+str(btn.number))
     btn.setIcon(btn_data.icon)
     btn.setIconSize(btn_data.icon_size)
     if btn_data.fix_size is not None:
