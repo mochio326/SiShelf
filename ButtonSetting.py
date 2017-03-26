@@ -3,6 +3,8 @@ from vendor.Qt import QtCore, QtGui, QtWidgets
 import gui.ButtonSetting_ui
 reload(gui.ButtonSetting_ui)
 import ShelfButton
+import maya.cmds as cmds
+import os
 
 class LineNumberTextEdit(QtWidgets.QTextEdit):
     def __init__(self, parent=None):
@@ -80,16 +82,36 @@ class SettingDialog(QtWidgets.QDialog, gui.ButtonSetting_ui.Ui_Form):
         self.buttonbox.accepted.connect(self.accept)
         self.buttonbox.rejected.connect(self.reject)
 
-        #オリジナルの行番号付きLineEcitに差し替える
-        #designerでのカスタムウィジェットへの差し替えが上手くいかなかったので。
-        self.verticalLayout_4.removeWidget(self.text_script_code)
-        self.text_script_code.setVisible(False)
-        self.text_script_code.deleteLater()
-        self.text_script_code = LineNumberTextEdit(self)
-        self.verticalLayout_4.addWidget(self.text_script_code)
+        self._replace_code_textedit(self.verticalLayout_4)
+        self._data_input(btn_data)
+        self._preview_button_drawing()
 
+        self.button_maya_icon.setIcon(QtGui.QIcon(':/mayaIcon.png'))
+
+        # コールバック関数の設定
+        func = self._preview_button_drawing
+        self.text_label.textChanged.connect(func)
+        self.text_tooltip.textChanged.connect(func)
+        self.checkbox_tooltip.stateChanged.connect(func)
+        self.line_icon_file.textChanged.connect(func)
+        self.checkbox_fix_size.stateChanged.connect(func)
+        self.spinbox_btn_size_x.valueChanged.connect(func)
+        self.spinbox_btn_size_y.valueChanged.connect(func)
+        self.checkbox_use_label.stateChanged.connect(func)
+        self.checkbox_use_icon.stateChanged.connect(func)
+        self.combo_icon_style.currentIndexChanged.connect(func)
+        self.spinbox_icon_size.valueChanged.connect(func)
+        self.spinbox_label_font_size.valueChanged.connect(func)
+
+        self.button_maya_icon.clicked.connect(self._get_maya_icon)
+        self.button_icon.clicked.connect(self._get_icon)
+
+    def _data_input(self, btn_data):
         # データの入力
         self.text_label.setPlainText(btn_data.label)
+        self.text_tooltip.setPlainText(btn_data.tooltip)
+        self.checkbox_tooltip.setChecked(btn_data.bool_tooltip)
+
         self.text_script_code.setPlainText(btn_data.code)
         self.line_icon_file.setText(btn_data.icon_file)
         self.spinbox_btn_position_x.setValue(btn_data.position_x)
@@ -103,10 +125,42 @@ class SettingDialog(QtWidgets.QDialog, gui.ButtonSetting_ui.Ui_Form):
         self.checkbox_use_icon.setChecked(btn_data.use_icon)
         self.combo_icon_style.setCurrentIndex(btn_data.icon_style)
 
-        self.spinbox_icon_size_x.setValue(btn_data.icon_size_x)
-        self.spinbox_icon_size_y.setValue(btn_data.icon_size_y)
+        self.spinbox_icon_size.setValue(btn_data.icon_size_x)
 
-    def eventFilter(self,o,e):
+        self.spinbox_label_font_size.setValue(btn_data.label_font_size)
+
+    def _replace_code_textedit(self, parent):
+        #オリジナルの行番号付きLineEcitに差し替える
+        #designerでのカスタムウィジェットへの差し替えが上手くいかなかったので。
+        parent.removeWidget(self.text_script_code)
+        self.text_script_code.setVisible(False)
+        self.text_script_code.setParent(None)
+        self.text_script_code.deleteLater()
+        self.text_script_code = LineNumberTextEdit(self)
+        parent.addWidget(self.text_script_code)
+
+    def _preview_button_drawing(self):
+        for child in self.findChildren(ShelfButton.ButtonWidget):
+            child.setParent(None)
+            child.deleteLater()
+        btn = ShelfButton.create_button(self, self.get_button_data_instance(), -1)
+
+        # センタリング用のspacerを仕込むとmayaが落ちるようになったのでひとまず封印
+        # spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        #self.button_preview.addItem(spacer)
+        self.button_preview.addWidget(btn)
+        #self.button_preview.addItem(spacer)
+
+    def _get_maya_icon(self):
+        icon, result = DccIconViewer.get_icon_name(self)
+        if result:
+            self.line_icon_file.setText(icon)
+
+    def _get_icon(self):
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', os.path.expanduser('~') + '/Desktop')
+        self.line_icon_file.setText(filename[0])
+
+    def eventFilter(self, o, e):
         if e.type() == QtCore.QEvent.Paint and o == self.side:
             self.draw_line_number(o)
             return True
@@ -115,6 +169,9 @@ class SettingDialog(QtWidgets.QDialog, gui.ButtonSetting_ui.Ui_Form):
     def get_button_data_instance(self):
         data = ShelfButton.ButtonData()
         data.label = self.text_label.toPlainText()
+
+        data.bool_tooltip = self.checkbox_tooltip.isChecked()
+        data.tooltip = self.text_tooltip.toPlainText()
         data.code = self.text_script_code.toPlainText()
         data.icon_file = self.line_icon_file.text()
         data.position_x = self.spinbox_btn_position_x.value()
@@ -128,8 +185,10 @@ class SettingDialog(QtWidgets.QDialog, gui.ButtonSetting_ui.Ui_Form):
         data.use_icon = self.checkbox_use_icon.isChecked()
         data.icon_style = self.combo_icon_style.currentIndex()
 
-        data.icon_size_x = self.spinbox_icon_size_x.value()
-        data.icon_size_y = self.spinbox_icon_size_y.value()
+        data.icon_size_x = self.spinbox_icon_size.value()
+        data.icon_size_y = self.spinbox_icon_size.value()
+
+        data.label_font_size = self.spinbox_label_font_size.value()
 
         return data
 
@@ -143,6 +202,64 @@ class SettingDialog(QtWidgets.QDialog, gui.ButtonSetting_ui.Ui_Form):
         data = dialog.get_button_data_instance()
         return (data, result == QtWidgets.QDialog.Accepted)
 
+
+class DccIconViewer(QtWidgets.QDialog):
+
+    def __init__(self, parent=None):
+        super(DccIconViewer, self).__init__(parent)
+        self.view = QtWidgets.QTreeView()
+
+        # ダイアログのOK/キャンセルボタンを用意
+        btns = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            QtCore.Qt.Horizontal, self)
+        btns.accepted.connect(self.accept)
+        btns.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        self.setLayout(layout)
+        layout.addWidget(self.view)
+        layout.addWidget(btns)
+
+        self.model = QtGui.QStandardItemModel()
+        self.view.setIconSize(QtCore.QSize(32, 32))
+        self.view.setModel(self.model)
+        self.set_item()
+
+        self.view.hideColumn(3)
+        self.view.hideColumn(2)
+        self.view.hideColumn(1)
+        self.view.setAlternatingRowColors(True)
+        self.view.setSortingEnabled(True)
+        self.resize(300, 500)
+
+    def set_item(self):
+        images = get_icon_list()
+        for img in images:
+            item = QtGui.QStandardItem(img)
+            item.setIcon(QtGui.QIcon(':/{0}'.format(img)))
+            self.model.appendRow(item)
+
+    def icon_name(self):
+        select_model = self.view.selectionModel()
+        if select_model.hasSelection() is False:
+            return ''
+        for index in select_model.selectedIndexes():
+            file_path = self.model.data(index)
+        return ':/' + file_path
+
+    @staticmethod
+    def get_icon_name(parent=None):
+        dialog = DccIconViewer(parent)
+        result = dialog.exec_()  # ダイアログを開く
+        name = dialog.icon_name()  # キャンバスサイズを取得
+        return (name, result == QtWidgets.QDialog.Accepted)
+
+# #################################################################################################
+# Maya依存の部分
+# #################################################################################################
+def get_icon_list():
+    return cmds.resourceManager(nameFilter='*.*')
 
 #-----------------------------------------------------------------------------
 # EOF

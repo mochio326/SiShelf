@@ -33,6 +33,11 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
 
         #右クリック時のメニュー
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        menu_edit = QtWidgets.QAction(self)
+        menu_edit.setText("Eidt the selected button")
+        menu_edit.triggered.connect(self.edit_selected_button)
+        self.addAction(menu_edit)
+
         menu_delete = QtWidgets.QAction(self)
         menu_delete.setText("Delete the selected button")
         menu_delete.triggered.connect(self.delete_selected_button)
@@ -40,8 +45,30 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
 
     def delete_selected_button(self):
         for s in self.selected:
-            s.deleteLater()
+            self.delete_button(s)
         self.selected = []
+
+    def edit_selected_button(self):
+        if len(self.selected) != 1:
+            print('Only standalone selection is supported.')
+            return
+        btn = self.selected[0]
+        new_btn = self.create_button(btn.btn_data, btn.number)
+        self.delete_button(btn)
+        self.btn[new_btn.number] = new_btn
+
+    def delete_button(self, button):
+        button.deleteLater()
+
+    def create_button(self, btn_data, number):
+        btn_data, result = ButtonSetting.SettingDialog.get_data(self, btn_data)
+        if result is not True:
+            print("Cancel.")
+            return
+        btn = ShelfButton.create_button(self, btn_data, number)
+        self.repaint()
+        return btn
+
     # -----------------------
     # Event
     # -----------------------
@@ -58,15 +85,7 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
                 btn_data.label = 'newButton' + str(len(self.btn))
                 btn_data.position = position
 
-            btn_data, result = ButtonSetting.SettingDialog.get_data(self, btn_data)
-            if result is not True:
-                print("Cancel.")
-                return
-            if btn_data.label == '':
-                return
-
-            btn = ShelfButton.create_button(self, btn_data, len(self.btn))
-            self.repaint()
+            btn = self.create_button(btn_data, len(self.btn))
             self.btn.append(btn)
 
         elif isinstance(event.source(), ShelfButton.ButtonWidget):
@@ -91,17 +110,15 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
             event.ignore()
 
     def mousePressEvent(self, event):
-        if event.button() != QtCore.Qt.LeftButton:
-            return
-        self.origin = event.pos()
-        self.band = QtCore.QRect()
+        if event.button() == QtCore.Qt.LeftButton:
+            self.origin = event.pos()
+            self.band = QtCore.QRect()
 
     def mouseMoveEvent(self, event):
 
-        if self.band is None:
-            return
-        self.band = QtCore.QRect(self.origin, event.pos())
-        self.update()
+        if self.band is not None:
+            self.band = QtCore.QRect(self.origin, event.pos())
+            self.update()
 
     def mouseReleaseEvent(self, event):
         if event.button() != QtCore.Qt.LeftButton:
@@ -116,6 +133,8 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
             if rect.intersects(self._get_button_absolute_geometry(child)):
                 self.selected.append(child)
 
+        print len(self.selected)
+
         self._set_stylesheet()
 
         self.origin = QtCore.QPoint()
@@ -123,17 +142,14 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
         self.update()
 
     def paintEvent(self, event):
-        if self.band is None:
-            return
-
-        #event.save()
-        painter = QtGui.QPainter(self)
-        #painter.setRenderHint(QtGui.QPainter.Antialiasing, True)  # アンチエイリアス
-        color = QtGui.QColor(255, 255, 255, 125)
-        pen = QtGui.QPen(color, self.PEN_WIDTH)
-        painter.setPen(pen)
-        painter.drawRect(self.band)
-        painter.restore()
+        if self.band is not None:
+            #矩形範囲の描画
+            painter = QtGui.QPainter(self)
+            color = QtGui.QColor(255, 255, 255, 125)
+            pen = QtGui.QPen(color, self.PEN_WIDTH)
+            painter.setPen(pen)
+            painter.drawRect(self.band)
+            painter.restore()
 
     # -----------------------
     # Others

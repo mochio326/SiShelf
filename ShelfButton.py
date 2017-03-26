@@ -1,9 +1,12 @@
 ## -*- coding: utf-8 -*-
 from vendor.Qt import QtCore, QtGui, QtWidgets
+import ButtonSetting
+
 
 class ButtonWidget(QtWidgets.QToolButton):
 
     def __init__(self, parent, btn_data, number=-1):
+        self.parent = parent
         super(ButtonWidget, self).__init__(parent)
         self.btn_data = btn_data
         self.number = number
@@ -26,15 +29,23 @@ class ButtonWidget(QtWidgets.QToolButton):
         # ボタンが押されたときのボタンの色の変化
         QtWidgets.QPushButton.mousePressEvent(self, event)
 
-        # 左クリックしたときにコンソールにpress表示
+        # 左クリック
+        if self.number == -1:
+            return
         if event.button() == QtCore.Qt.LeftButton:
             print('mousePressEvent : ' + self.btn_data.label)
             exec(self.btn_data.code)
+
+    def _edit(self):
+        edit_button(self.parent, self)
 
 
 class ButtonData(object):
     def __init__(self, label='', code=''):
         self.label = label
+        self.label_font_size = 10
+        self.tooltip = ''
+        self.bool_tooltip = True
         self.code = code
         self.position_x = 0
         self.position_y = 0
@@ -101,6 +112,7 @@ class ButtonData(object):
             # 例外はとりあえずテキストのみ
             return QtCore.Qt.ToolButtonTextOnly
 
+
 def create_button(parent, btn_data, number):
     btn = ButtonWidget(parent, btn_data, number)
     btn.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
@@ -110,7 +122,14 @@ def create_button(parent, btn_data, number):
     if btn_data.fix_size is not None:
         btn.setFixedSize(btn_data.fix_size)
     btn.setText(btn_data.label)
+    font = btn.font()
+    font.setPointSize(btn_data.label_font_size)
+    btn.setFont(font)
     btn.setToolButtonStyle(btn_data.style)
+    if btn_data.bool_tooltip is True:
+        btn.setToolTip(btn_data.code)
+    else:
+        btn.setToolTip(btn_data.tooltip)
 
     btn.show()
     btn.move(btn_data.position)
