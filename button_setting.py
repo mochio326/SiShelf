@@ -1,8 +1,8 @@
 ## -*- coding: utf-8 -*-
 from vendor.Qt import QtCore, QtGui, QtWidgets
-import gui.ButtonSetting_ui
-reload(gui.ButtonSetting_ui)
-import ShelfButton
+import gui.button_setting_ui
+reload(gui.button_setting_ui)
+import button
 import maya.cmds as cmds
 import os
 
@@ -72,7 +72,7 @@ class LineNumberTextEdit(QtWidgets.QTextEdit):
             block = block.next()
         paint.end()
 
-class SettingDialog(QtWidgets.QDialog, gui.ButtonSetting_ui.Ui_Form):
+class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
     def __init__(self, parent, btn_data):
         super(SettingDialog, self).__init__(parent)
         self.setupUi(self)
@@ -140,10 +140,10 @@ class SettingDialog(QtWidgets.QDialog, gui.ButtonSetting_ui.Ui_Form):
         parent.addWidget(self.text_script_code)
 
     def _preview_button_drawing(self):
-        for child in self.findChildren(ShelfButton.ButtonWidget):
+        for child in self.findChildren(button.ButtonWidget):
             child.setParent(None)
             child.deleteLater()
-        btn = ShelfButton.create_button(self, self.get_button_data_instance(), -1)
+        btn = button.create_button(self, self.get_button_data_instance(), -1)
 
         # センタリング用のspacerを仕込むとmayaが落ちるようになったのでひとまず封印
         # spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -167,7 +167,7 @@ class SettingDialog(QtWidgets.QDialog, gui.ButtonSetting_ui.Ui_Form):
         return False
 
     def get_button_data_instance(self):
-        data = ShelfButton.ButtonData()
+        data = button.ButtonData()
         data.label = self.text_label.toPlainText()
 
         data.bool_tooltip = self.checkbox_tooltip.isChecked()

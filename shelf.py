@@ -1,11 +1,12 @@
 ## -*- coding: utf-8 -*-
 from vendor.Qt import QtCore, QtGui, QtWidgets
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-import ButtonSetting
-import ShelfButton
-reload(ShelfButton)
-reload(ButtonSetting)
+import button_setting
+import button
+reload(button)
+reload(button_setting)
 import json
+import os
 import pymel.core as pm
 
 
@@ -65,11 +66,11 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         button.deleteLater()
 
     def create_button(self, btn_data, number):
-        btn_data, result = ButtonSetting.SettingDialog.get_data(self, btn_data)
+        btn_data, result = button_setting.SettingDialog.get_data(self, btn_data)
         if result is not True:
             print("Cancel.")
             return
-        btn = ShelfButton.create_button(self, btn_data, number)
+        btn = button.create_button(self, btn_data, number)
         self.repaint()
         return btn
 
@@ -82,7 +83,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         #urllist = mimedata.urls()
 
         if mimedata.hasText() is True or mimedata.hasUrls() is True:
-            btn_data = ShelfButton.ButtonData()
+            btn_data = button.ButtonData()
 
             if mimedata.hasText() is True:
                 btn_data.code = mimedata.text()
@@ -92,7 +93,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             btn = self.create_button(btn_data, len(self.btn))
             self.btn.append(btn)
 
-        elif isinstance(event.source(), ShelfButton.ButtonWidget):
+        elif isinstance(event.source(), button.ButtonWidget):
             # ドラッグ後のマウスの位置にボタンを配置
             self.btn[event.source().number].move(position)
 
@@ -108,7 +109,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         mime = event.mimeData()
         if mime.hasText() is True or mime.hasUrls() is True:
             event.accept()
-        elif isinstance(event.source(), ShelfButton.ButtonWidget):
+        elif isinstance(event.source(), button.ButtonWidget):
             event.accept()
         else:
             event.ignore()
@@ -133,7 +134,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         rect = QtCore.QRect(self.origin, event.pos()).normalized()
 
         self.selected = []
-        for child in self.findChildren(ShelfButton.ButtonWidget):
+        for child in self.findChildren(button.ButtonWidget):
             if rect.intersects(self._get_button_absolute_geometry(child)):
                 self.selected.append(child)
 
@@ -187,8 +188,9 @@ def get_ui():
     return None
 
 
-def get_show_repr(ui):
+def get_show_repr():
     dict = {}
+    dict['display'] = False
     dict['dockable'] = True
     dict['floating'] = True
     dict['area'] = None
@@ -201,6 +203,7 @@ def get_show_repr(ui):
     if ui is None:
         return dict
 
+    dict['display'] = True
     dict['dockable'] = ui.isDockable()
     dict['floating'] = ui.isFloating()
     dict['area'] = ui.dockArea()
@@ -217,15 +220,41 @@ def get_show_repr(ui):
     return dict
 
 
+def get_json_path():
+    dir = os.path.dirname(os.path.abspath(__file__))
+    path = '{0}\\{1}.json'.format(dir, SiShelfWeight.TITLE)
+    return path
+
+
 def quit_app():
-    ui = get_ui()
-    dict = get_show_repr(ui)
-    pm.optionVar[SiShelfWeight.TITLE] = json.dumps(dict)
+    dict = get_show_repr()
+    f = open(get_json_path(), 'w')
+    json.dump(dict, f)
+    f.close()
 
 
 def make_quit_app_job():
     pm.scriptJob(e=("quitApplication", pm.Callback(quit_app)))
 
+
+def restoration_ui():
+    path = get_json_path()
+    if os.path.isfile(path) is False:
+        return
+    f = open(path, 'r')
+    dict = json.load(f)
+    if dict['display'] is False:
+        return
+    print dict
+    if dict['floating'] is False and dict['area'] is not None:
+        window = SiShelfWeight()
+        window.show(
+            dockable=True,
+            area=dict['area'],
+            floating=dict['floating'],
+            width=dict['width'],
+            height=dict['height']
+        )
 
 def main():
     # 同名のウインドウが存在したら削除

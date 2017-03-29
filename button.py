@@ -1,6 +1,6 @@
 ## -*- coding: utf-8 -*-
 from vendor.Qt import QtCore, QtGui, QtWidgets
-import ButtonSetting
+import button_setting
 
 
 class ButtonWidget(QtWidgets.QToolButton):
