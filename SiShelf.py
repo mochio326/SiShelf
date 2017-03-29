@@ -1,12 +1,15 @@
 ## -*- coding: utf-8 -*-
 from vendor.Qt import QtCore, QtGui, QtWidgets
-from maya.app.general.mayaMixin import MayaQWidgetBaseMixin
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import ButtonSetting
 import ShelfButton
 reload(ShelfButton)
 reload(ButtonSetting)
+import json
+import pymel.core as pm
 
-class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
+
+class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     TITLE = "SiShelf"
     URL = ""
     # 矩形の枠の太さ
@@ -16,6 +19,7 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
         super(SiShelfWeight, self).__init__(parent)
         #メモリ管理的おまじない
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         # オブジェクト名とタイトルの変更
         self.setObjectName(self.TITLE)
         self.setWindowTitle(self.TITLE)
@@ -171,22 +175,67 @@ class SiShelfWeight(MayaQWidgetBaseMixin, QtWidgets.QDialog):
             css += '#button_' + str(s.number) + '{border-color:#aaaaaa; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
 
-        
 
 # #################################################################################################
 # ここから実行関数
 # #################################################################################################
 
+def get_ui():
+    ui = {w.objectName(): w for w in QtWidgets.QApplication.allWidgets()}
+    if SiShelfWeight.TITLE in ui:
+        return ui[SiShelfWeight.TITLE]
+    return None
+
+
+def get_show_repr(ui):
+    dict = {}
+    dict['dockable'] = True
+    dict['floating'] = True
+    dict['area'] = None
+    dict['x'] = 0
+    dict['y'] = 0
+    dict['width'] = 400
+    dict['height'] = 150
+
+    ui = get_ui()
+    if ui is None:
+        return dict
+
+    dict['dockable'] = ui.isDockable()
+    dict['floating'] = ui.isFloating()
+    dict['area'] = ui.dockArea()
+    if dict['dockable'] == True:
+        dock_dtrl = ui.parent()
+        pos = dock_dtrl.mapToGlobal(QtCore.QPoint(0, 0))
+    else:
+        pos = ui.pos()
+    sz = ui.geometry().size()
+    dict['x'] = pos.x()
+    dict['y'] = pos.y()
+    dict['width'] = sz.width()
+    dict['height'] = sz.height()
+    return dict
+
+
+def quit_app():
+    ui = get_ui()
+    dict = get_show_repr(ui)
+    pm.optionVar[SiShelfWeight.TITLE] = json.dumps(dict)
+
+
+def make_quit_app_job():
+    pm.scriptJob(e=("quitApplication", pm.Callback(quit_app)))
+
+
 def main():
     # 同名のウインドウが存在したら削除
-    ui = {w.objectName(): w for w in QtWidgets.QApplication.topLevelWidgets()}
-    if SiShelfWeight.TITLE in ui:
-        ui[SiShelfWeight.TITLE].close()
-
+    ui = get_ui()
+    if ui is not None:
+        ui.close()
     app = QtWidgets.QApplication.instance()
     window = SiShelfWeight()
-    window.show()
-    #return ui
+    window.show(dockable=True)
+    return ui
 
 
 if __name__ == '__main__':
