@@ -6,10 +6,10 @@ import string
 
 class ButtonWidget(QtWidgets.QToolButton):
 
-    def __init__(self, parent, btn_data, preview=False):
+    def __init__(self, parent, data, preview=False):
         self.parent = parent
         super(ButtonWidget, self).__init__(parent)
-        self.btn_data = btn_data
+        self.data = data
         self.preview = preview
 
     def mouseMoveEvent(self, event):
@@ -34,8 +34,8 @@ class ButtonWidget(QtWidgets.QToolButton):
         if self.preview is True:
             return
         if event.button() == QtCore.Qt.LeftButton:
-            print('mousePressEvent : ' + self.btn_data.label)
-            exec(self.btn_data.code)
+            print('mousePressEvent : ' + self.data.label)
+            exec(self.data.code)
 
     def _edit(self):
         edit_button(self.parent, self)
@@ -119,26 +119,26 @@ def random_string(length, seq=string.digits + string.ascii_lowercase):
     return ''.join([sr.choice(seq) for i in xrange(length)])
 
 
-def create_button(parent, btn_data, preview=False):
-    btn = ButtonWidget(parent, btn_data, preview)
+def create_button(parent, data, preview=False):
+    btn = ButtonWidget(parent, data, preview)
     btn.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
     btn.setObjectName(random_string(15))
-    btn.setIcon(btn_data.icon)
-    btn.setIconSize(btn_data.icon_size)
-    if btn_data.fix_size is not None:
-        btn.setFixedSize(btn_data.fix_size)
-    btn.setText(btn_data.label)
+    btn.setIcon(data.icon)
+    btn.setIconSize(data.icon_size)
+    if data.fix_size is not None:
+        btn.setFixedSize(data.fix_size)
+    btn.setText(data.label)
     font = btn.font()
-    font.setPointSize(btn_data.label_font_size)
+    font.setPointSize(data.label_font_size)
     btn.setFont(font)
-    btn.setToolButtonStyle(btn_data.style)
-    if btn_data.bool_tooltip is True:
-        btn.setToolTip(btn_data.code)
+    btn.setToolButtonStyle(data.style)
+    if data.bool_tooltip is True:
+        btn.setToolTip(data.code)
     else:
-        btn.setToolTip(btn_data.tooltip)
+        btn.setToolTip(data.tooltip)
 
     btn.show()
-    btn.move(btn_data.position)
+    btn.move(data.position)
     return btn
 
 #-----------------------------------------------------------------------------

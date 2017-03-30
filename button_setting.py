@@ -73,7 +73,7 @@ class LineNumberTextEdit(QtWidgets.QTextEdit):
         paint.end()
 
 class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
-    def __init__(self, parent, btn_data):
+    def __init__(self, parent, data):
         super(SettingDialog, self).__init__(parent)
         self.setupUi(self)
         self.setWindowTitle("Button Setting")
@@ -83,7 +83,7 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         self.buttonbox.rejected.connect(self.reject)
 
         self._replace_code_textedit(self.verticalLayout_4)
-        self._data_input(btn_data)
+        self._data_input(data)
         self._preview_button_drawing()
 
         self.button_maya_icon.setIcon(QtGui.QIcon(':/mayaIcon.png'))
@@ -106,28 +106,28 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         self.button_maya_icon.clicked.connect(self._get_maya_icon)
         self.button_icon.clicked.connect(self._get_icon)
 
-    def _data_input(self, btn_data):
+    def _data_input(self, data):
         # データの入力
-        self.text_label.setPlainText(btn_data.label)
-        self.text_tooltip.setPlainText(btn_data.tooltip)
-        self.checkbox_tooltip.setChecked(btn_data.bool_tooltip)
+        self.text_label.setPlainText(data.label)
+        self.text_tooltip.setPlainText(data.tooltip)
+        self.checkbox_tooltip.setChecked(data.bool_tooltip)
 
-        self.text_script_code.setPlainText(btn_data.code)
-        self.line_icon_file.setText(btn_data.icon_file)
-        self.spinbox_btn_position_x.setValue(btn_data.position_x)
-        self.spinbox_btn_position_y.setValue(btn_data.position_y)
+        self.text_script_code.setPlainText(data.code)
+        self.line_icon_file.setText(data.icon_file)
+        self.spinbox_btn_position_x.setValue(data.position_x)
+        self.spinbox_btn_position_y.setValue(data.position_y)
 
-        self.checkbox_fix_size.setChecked(btn_data.fix_size_flag)
-        self.spinbox_btn_size_x.setValue(btn_data.btn_size_x)
-        self.spinbox_btn_size_y.setValue(btn_data.btn_size_y)
+        self.checkbox_fix_size.setChecked(data.fix_size_flag)
+        self.spinbox_btn_size_x.setValue(data.btn_size_x)
+        self.spinbox_btn_size_y.setValue(data.btn_size_y)
 
-        self.checkbox_use_label.setChecked(btn_data.use_label)
-        self.checkbox_use_icon.setChecked(btn_data.use_icon)
-        self.combo_icon_style.setCurrentIndex(btn_data.icon_style)
+        self.checkbox_use_label.setChecked(data.use_label)
+        self.checkbox_use_icon.setChecked(data.use_icon)
+        self.combo_icon_style.setCurrentIndex(data.icon_style)
 
-        self.spinbox_icon_size.setValue(btn_data.icon_size_x)
+        self.spinbox_icon_size.setValue(data.icon_size_x)
 
-        self.spinbox_label_font_size.setValue(btn_data.label_font_size)
+        self.spinbox_label_font_size.setValue(data.label_font_size)
 
     def _replace_code_textedit(self, parent):
         #オリジナルの行番号付きLineEcitに差し替える

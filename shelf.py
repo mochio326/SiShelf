@@ -25,9 +25,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.setObjectName(self.TITLE)
         self.setWindowTitle(self.TITLE)
 
-        self.tab1 = QtWidgets.QWidget()
-        self.insertTab(0, self.tab1, 'Tab1')
-        self.insertTab(0, QtWidgets.QWidget(), 'Tab2')
+        self.insertTab(0, QtWidgets.QWidget(), 'Tab1')
+        self.setMovable(True)
 
         self.setAcceptDrops(True)
 
@@ -40,6 +39,11 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         #右クリック時のメニュー
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        menu_add_tab = QtWidgets.QAction(self)
+        menu_add_tab.setText("Add Tab")
+        menu_add_tab.triggered.connect(self.__add_tab)
+        self.addAction(menu_add_tab)
+
         menu_edit = QtWidgets.QAction(self)
         menu_edit.setText("Edit the selected button")
         menu_edit.triggered.connect(self.edit_selected_button)
@@ -49,6 +53,20 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         menu_delete.setText("Delete the selected button")
         menu_delete.triggered.connect(self.delete_selected_button)
         self.addAction(menu_delete)
+
+    def __add_tab(self):
+
+        new_tab_name, status = QtWidgets.QInputDialog.getText(
+            self,
+            'Add New Tab',
+            'Specify new tab name',
+            QtWidgets.QLineEdit.Normal,
+            'Tab{0}'.format(self.count() + 1)
+        )
+        if not status:
+            return
+        self.insertTab(self.count() + 1, QtWidgets.QWidget(), new_tab_name)
+        self.setCurrentIndex(self.count() + 1)
 
     def delete_selected_button(self):
         for s in self.selected:
@@ -60,18 +78,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             print('Only standalone selection is supported.')
             return
         btn = self.selected[0]
-        self.create_button(btn.btn_data)
+        self.create_button(btn.data)
         self.delete_button(btn)
 
     def delete_button(self, button):
         button.deleteLater()
 
-    def create_button(self, btn_data):
-        btn_data, result = button_setting.SettingDialog.get_data(self, btn_data)
+    def create_button(self, data):
+        data, result = button_setting.SettingDialog.get_data(self, data)
         if result is not True:
             print("Cancel.")
             return
-        btn = button.create_button(self.currentWidget(), btn_data)
+        btn = button.create_button(self.currentWidget(), data)
         self.repaint()
         return btn
 
@@ -81,21 +99,26 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def dropEvent(self, event):
         mimedata = event.mimeData()
         position = event.pos()
-        #urllist = mimedata.urls()
+        #ドロップ位置からタブの高さを考慮する
+        x = event.pos().x()
+        y = event.pos().y() - self.sizeHint().height()
+        position = QtCore.QPoint(x, y)
 
         if mimedata.hasText() is True or mimedata.hasUrls() is True:
-            btn_data = button.ButtonData()
+            data = button.ButtonData()
 
             if mimedata.hasText() is True:
-                btn_data.code = mimedata.text()
-                btn_data.label = 'newButton'
-                btn_data.position = position
+                data.code = mimedata.text()
+                data.label = 'newButton'
+                data.position = position
 
-            btn = self.create_button(btn_data)
+            btn = self.create_button(data)
 
         elif isinstance(event.source(), button.ButtonWidget):
             # ドラッグ後のマウスの位置にボタンを配置
             event.source().move(position)
+            event.source().data.position_x = x
+            event.source().data.position_y = y
 
             # よくわからん
             event.setDropAction(QtCore.Qt.MoveAction)
@@ -135,8 +158,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         self.selected = []
         for child in self.findChildren(button.ButtonWidget):
-            if rect.intersects(self._get_button_absolute_geometry(child)):
-                self.selected.append(child)
+            # 矩形内に位置しているかを判定
+            if rect.intersects(self._get_button_absolute_geometry(child)) is False:
+                continue
+            # アクティブなタブ以外の物は選択対象外
+            if child.parent != self.currentWidget():
+                continue
+            self.selected.append(child)
 
         self._set_stylesheet()
         self.origin = QtCore.QPoint()
