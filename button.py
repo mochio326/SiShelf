@@ -1,15 +1,16 @@
 ## -*- coding: utf-8 -*-
 from vendor.Qt import QtCore, QtGui, QtWidgets
-import button_setting
+import random
+import string
 
 
 class ButtonWidget(QtWidgets.QToolButton):
 
-    def __init__(self, parent, btn_data, number=-1):
+    def __init__(self, parent, btn_data, preview=False):
         self.parent = parent
         super(ButtonWidget, self).__init__(parent)
         self.btn_data = btn_data
-        self.number = number
+        self.preview = preview
 
     def mouseMoveEvent(self, event):
         # 中クリックだけドラッグ＆ドロップ可能にする
@@ -30,7 +31,7 @@ class ButtonWidget(QtWidgets.QToolButton):
         QtWidgets.QPushButton.mousePressEvent(self, event)
 
         # 左クリック
-        if self.number == -1:
+        if self.preview is True:
             return
         if event.button() == QtCore.Qt.LeftButton:
             print('mousePressEvent : ' + self.btn_data.label)
@@ -113,10 +114,15 @@ class ButtonData(object):
             return QtCore.Qt.ToolButtonTextOnly
 
 
-def create_button(parent, btn_data, number):
-    btn = ButtonWidget(parent, btn_data, number)
+def random_string(length, seq=string.digits + string.ascii_lowercase):
+    sr = random.SystemRandom()
+    return ''.join([sr.choice(seq) for i in xrange(length)])
+
+
+def create_button(parent, btn_data, preview=False):
+    btn = ButtonWidget(parent, btn_data, preview)
     btn.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-    btn.setObjectName('button_'+str(btn.number))
+    btn.setObjectName(random_string(15))
     btn.setIcon(btn_data.icon)
     btn.setIconSize(btn_data.icon_size)
     if btn_data.fix_size is not None:

@@ -143,7 +143,7 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         for child in self.findChildren(button.ButtonWidget):
             child.setParent(None)
             child.deleteLater()
-        btn = button.create_button(self, self.get_button_data_instance(), -1)
+        btn = button.create_button(self, self.get_button_data_instance(), True)
 
         # センタリング用のspacerを仕込むとmayaが落ちるようになったのでひとまず封印
         # spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)

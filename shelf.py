@@ -10,7 +10,7 @@ import os
 import pymel.core as pm
 
 
-class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
+class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     TITLE = "SiShelf"
     URL = ""
     # 矩形の枠の太さ
@@ -25,11 +25,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.setObjectName(self.TITLE)
         self.setWindowTitle(self.TITLE)
 
+        self.tab1 = QtWidgets.QWidget()
+        self.insertTab(0, self.tab1, 'Tab1')
+        self.insertTab(0, QtWidgets.QWidget(), 'Tab2')
+
         self.setAcceptDrops(True)
 
         self.resize(400, 150)
-        self.btn = []
-        self.button = None
         self.origin = None
         self.band = None
         self.selected = []
@@ -39,7 +41,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         #右クリック時のメニュー
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         menu_edit = QtWidgets.QAction(self)
-        menu_edit.setText("Eidt the selected button")
+        menu_edit.setText("Edit the selected button")
         menu_edit.triggered.connect(self.edit_selected_button)
         self.addAction(menu_edit)
 
@@ -58,19 +60,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             print('Only standalone selection is supported.')
             return
         btn = self.selected[0]
-        new_btn = self.create_button(btn.btn_data, btn.number)
+        self.create_button(btn.btn_data)
         self.delete_button(btn)
-        self.btn[new_btn.number] = new_btn
 
     def delete_button(self, button):
         button.deleteLater()
 
-    def create_button(self, btn_data, number):
+    def create_button(self, btn_data):
         btn_data, result = button_setting.SettingDialog.get_data(self, btn_data)
         if result is not True:
             print("Cancel.")
             return
-        btn = button.create_button(self, btn_data, number)
+        btn = button.create_button(self.currentWidget(), btn_data)
         self.repaint()
         return btn
 
@@ -87,15 +88,14 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
             if mimedata.hasText() is True:
                 btn_data.code = mimedata.text()
-                btn_data.label = 'newButton' + str(len(self.btn))
+                btn_data.label = 'newButton'
                 btn_data.position = position
 
-            btn = self.create_button(btn_data, len(self.btn))
-            self.btn.append(btn)
+            btn = self.create_button(btn_data)
 
         elif isinstance(event.source(), button.ButtonWidget):
             # ドラッグ後のマウスの位置にボタンを配置
-            self.btn[event.source().number].move(position)
+            event.source().move(position)
 
             # よくわからん
             event.setDropAction(QtCore.Qt.MoveAction)
@@ -138,10 +138,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             if rect.intersects(self._get_button_absolute_geometry(child)):
                 self.selected.append(child)
 
-        print len(self.selected)
-
         self._set_stylesheet()
-
         self.origin = QtCore.QPoint()
         self.band = None
         self.update()
@@ -173,7 +170,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         css = 'QToolButton:hover{background:#707070;}'
         # 選択中のボタンを誇張
         for s in self.selected:
-            css += '#button_' + str(s.number) + '{border-color:#aaaaaa; border-style:solid; border-width:1px;}'
+            print s.objectName()
+            css += '#' + s.objectName() + '{border-color:#aaaaaa; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
 
 
@@ -207,7 +205,7 @@ def get_show_repr():
     dict['dockable'] = ui.isDockable()
     dict['floating'] = ui.isFloating()
     dict['area'] = ui.dockArea()
-    if dict['dockable'] == True:
+    if dict['dockable'] is True:
         dock_dtrl = ui.parent()
         pos = dock_dtrl.mapToGlobal(QtCore.QPoint(0, 0))
     else:
