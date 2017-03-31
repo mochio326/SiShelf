@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>458</width>
-    <height>419</height>
+    <width>452</width>
+    <height>446</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -314,6 +314,9 @@
             <property name="topMargin">
              <number>0</number>
             </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
             <item>
              <layout class="QHBoxLayout" name="button_preview"/>
             </item>
@@ -614,6 +617,40 @@ p, li { white-space: pre-wrap; }
                    </widget>
                   </item>
                  </layout>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_12">
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <spacer name="horizontalSpacer_9">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="checkbox_bgcolor">
+                  <property name="text">
+                   <string>BackgroundColor</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="button_bgcolor">
+                  <property name="text">
+                   <string>SelectColor</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>

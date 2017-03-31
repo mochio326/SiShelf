@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'C:\Users\owner\Documents\Github\SiShelf\gui\button_setting.ui'
 #
-# Created: Thu Mar 30 05:39:45 2017
+# Created: Sat Apr 01 05:11:56 2017
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(458, 419)
+        Form.resize(452, 446)
         Form.setMinimumSize(QtCore.QSize(0, 0))
         self.gridLayout = QtGui.QGridLayout(Form)
         self.gridLayout.setObjectName("gridLayout")
@@ -150,7 +150,7 @@ class Ui_Form(object):
         self.gridLayout_3.setObjectName("gridLayout_3")
         self.horizontalLayout_9 = QtGui.QHBoxLayout()
         self.horizontalLayout_9.setSpacing(0)
-        self.horizontalLayout_9.setContentsMargins(-1, 0, -1, -1)
+        self.horizontalLayout_9.setContentsMargins(-1, 0, -1, 0)
         self.horizontalLayout_9.setObjectName("horizontalLayout_9")
         self.button_preview = QtGui.QHBoxLayout()
         self.button_preview.setObjectName("button_preview")
@@ -267,6 +267,18 @@ class Ui_Form(object):
         self.verticalLayout_3.addWidget(self.checkbox_tooltip)
         self.horizontalLayout_7.addLayout(self.verticalLayout_3)
         self.verticalLayout_2.addLayout(self.horizontalLayout_7)
+        self.horizontalLayout_12 = QtGui.QHBoxLayout()
+        self.horizontalLayout_12.setContentsMargins(-1, -1, -1, 0)
+        self.horizontalLayout_12.setObjectName("horizontalLayout_12")
+        spacerItem8 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_12.addItem(spacerItem8)
+        self.checkbox_bgcolor = QtGui.QCheckBox(self.groupBox_2)
+        self.checkbox_bgcolor.setObjectName("checkbox_bgcolor")
+        self.horizontalLayout_12.addWidget(self.checkbox_bgcolor)
+        self.button_bgcolor = QtGui.QPushButton(self.groupBox_2)
+        self.button_bgcolor.setObjectName("button_bgcolor")
+        self.horizontalLayout_12.addWidget(self.button_bgcolor)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_12)
         self.horizontalLayout_9.addLayout(self.verticalLayout_2)
         self.horizontalLayout_9.setStretch(0, 1)
         self.horizontalLayout_9.setStretch(1, 1)
@@ -315,5 +327,7 @@ class Ui_Form(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Button</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("Form", "Tooltip ", None, QtGui.QApplication.UnicodeUTF8))
         self.checkbox_tooltip.setText(QtGui.QApplication.translate("Form", "Same as code", None, QtGui.QApplication.UnicodeUTF8))
+        self.checkbox_bgcolor.setText(QtGui.QApplication.translate("Form", "BackgroundColor", None, QtGui.QApplication.UnicodeUTF8))
+        self.button_bgcolor.setText(QtGui.QApplication.translate("Form", "SelectColor", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_Button), QtGui.QApplication.translate("Form", "Button", None, QtGui.QApplication.UnicodeUTF8))
 
