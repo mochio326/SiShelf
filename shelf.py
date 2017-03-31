@@ -37,24 +37,20 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         self._set_stylesheet()
 
-        #右クリック時のメニュー
-        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        menu_add_tab = QtWidgets.QAction(self)
-        menu_add_tab.setText("Add Tab")
-        menu_add_tab.triggered.connect(self.__add_tab)
-        self.addAction(menu_add_tab)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._context_menu)
 
-        menu_edit = QtWidgets.QAction(self)
-        menu_edit.setText("Edit the selected button")
-        menu_edit.triggered.connect(self.edit_selected_button)
-        self.addAction(menu_edit)
+    def _context_menu(self, event):
+        menu = QtWidgets.QMenu()
+        # 項目名と実行する関数の設定
+        menu.addAction('Add Tab', self._add_tab)
+        menu.addSeparator()
+        menu.addAction('Edit the selected button', self._edit_selected_button)
+        menu.addAction('Delete the selected button', self._delete_selected_button)
+        # マウス位置に出現
+        menu.exec_(QtGui.QCursor.pos())
 
-        menu_delete = QtWidgets.QAction(self)
-        menu_delete.setText("Delete the selected button")
-        menu_delete.triggered.connect(self.delete_selected_button)
-        self.addAction(menu_delete)
-
-    def __add_tab(self):
+    def _add_tab(self):
 
         new_tab_name, status = QtWidgets.QInputDialog.getText(
             self,
@@ -68,17 +64,19 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.insertTab(self.count() + 1, QtWidgets.QWidget(), new_tab_name)
         self.setCurrentIndex(self.count() + 1)
 
-    def delete_selected_button(self):
+    def _delete_selected_button(self):
         for s in self.selected:
             self.delete_button(s)
         self.selected = []
 
-    def edit_selected_button(self):
+    def _edit_selected_button(self):
         if len(self.selected) != 1:
             print('Only standalone selection is supported.')
             return
         btn = self.selected[0]
-        self.create_button(btn.data)
+        _re = self.create_button(btn.data)
+        if _re is None:
+            return
         self.delete_button(btn)
 
     def delete_button(self, button):
@@ -88,7 +86,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         data, result = button_setting.SettingDialog.get_data(self, data)
         if result is not True:
             print("Cancel.")
-            return
+            return None
         btn = button.create_button(self.currentWidget(), data)
         self.repaint()
         return btn
@@ -102,6 +100,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         #ドロップ位置からタブの高さを考慮する
         x = event.pos().x()
         y = event.pos().y() - self.sizeHint().height()
+        if y < 0:
+            y = 0
         position = QtCore.QPoint(x, y)
 
         if mimedata.hasText() is True or mimedata.hasUrls() is True:
