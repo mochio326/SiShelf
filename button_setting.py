@@ -82,7 +82,14 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         self.buttonbox.accepted.connect(self.accept)
         self.buttonbox.rejected.connect(self.reject)
 
-        self._replace_code_textedit(self.verticalLayout_4)
+        #オリジナルの行番号付きLineEditに差し替える
+        #designerでのカスタムウィジェットへの差し替えが上手くいかなかったので。
+        self.text_script_code = self._replace_widget(
+            self.verticalLayout_4,
+            self.text_script_code,
+            LineNumberTextEdit(self)
+        )
+
         self._data_input(data)
         self._preview_button_drawing()
 
@@ -105,6 +112,16 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
 
         self.button_maya_icon.clicked.connect(self._get_maya_icon)
         self.button_icon.clicked.connect(self._get_icon)
+
+        self.checkbox_bgcolor.stateChanged.connect(func)
+        self.button_bgcolor.clicked.connect(self._select_bgcolor)
+
+
+    def _select_bgcolor(self):
+        color = QtWidgets.QColorDialog.getColor(self.bgcolor, self)
+        if color.isValid():
+            self.bgcolor = color.name()
+            self._preview_button_drawing()
 
     def _data_input(self, data):
         # データの入力
@@ -129,15 +146,21 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
 
         self.spinbox_label_font_size.setValue(data.label_font_size)
 
+        self.checkbox_bgcolor.setChecked(data.use_bgcolor)
+        self.bgcolor = data.bgcolor
+
     def _replace_code_textedit(self, parent):
         #オリジナルの行番号付きLineEcitに差し替える
         #designerでのカスタムウィジェットへの差し替えが上手くいかなかったので。
-        parent.removeWidget(self.text_script_code)
-        self.text_script_code.setVisible(False)
-        self.text_script_code.setParent(None)
-        self.text_script_code.deleteLater()
-        self.text_script_code = LineNumberTextEdit(self)
-        parent.addWidget(self.text_script_code)
+        self.text_script_code = self._replace_widget(parent, self.text_script_code, LineNumberTextEdit(self))
+
+    def _replace_widget(self, parent, old_widget, new_widget):
+        parent.removeWidget(old_widget)
+        old_widget.setVisible(False)
+        old_widget.setParent(None)
+        old_widget.deleteLater()
+        parent.addWidget(new_widget)
+        return new_widget
 
     def _preview_button_drawing(self):
         for child in self.findChildren(button.ButtonWidget):
@@ -189,6 +212,9 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         data.icon_size_y = self.spinbox_icon_size.value()
 
         data.label_font_size = self.spinbox_label_font_size.value()
+
+        data.use_bgcolor = self.checkbox_bgcolor.isChecked()
+        data.bgcolor = self.bgcolor
 
         return data
 

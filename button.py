@@ -62,6 +62,9 @@ class ButtonData(object):
         self.icon_size_x = 30
         self.icon_size_y = 30
 
+        self.bgcolor = '#4a4a4a'
+        self.use_bgcolor = False
+
     position = property(doc='position property')
     @position.getter
     def position(self):
@@ -136,6 +139,11 @@ def create_button(parent, data, preview=False):
         btn.setToolTip(data.code)
     else:
         btn.setToolTip(data.tooltip)
+
+    if data.use_bgcolor is True:
+        palette = QtGui.QPalette()
+        palette.setColor(QtGui.QPalette.Window, QtGui.QColor(data.bgcolor))
+        btn.setPalette(palette)
 
     btn.show()
     btn.move(data.position)
