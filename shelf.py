@@ -39,6 +39,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._context_menu)
+        self.currentChanged.connect(self._current_tab_change)
+
+    def _current_tab_change(self):
+        self.selected = []
+        self._set_stylesheet()
+        self.update()
 
     def _context_menu(self, event):
         menu = QtWidgets.QMenu()
@@ -97,6 +103,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             print("Cancel.")
             return None
         btn = button.create_button(self.currentWidget(), data)
+        self.selected = []
         self.repaint()
         return btn
 
@@ -202,11 +209,11 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         print rect
         self.selected = []
         for child in self.findChildren(button.ButtonWidget):
-            # 矩形内に位置しているかを判定
-            if rect.intersects(self._get_button_absolute_geometry(child)) is False:
-                continue
             # アクティブなタブ以外の物は選択対象外
             if child.parent != self.currentWidget():
+                continue
+            # 矩形内に位置しているかを判定
+            if rect.intersects(self._get_button_absolute_geometry(child)) is False:
                 continue
             self.selected.append(child)
 
