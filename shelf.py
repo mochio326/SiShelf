@@ -124,15 +124,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             if mimedata.hasUrls() is True:
                 #複数ファイルの場合は最後のファイルが有効になる
                 for url in mimedata.urls():
-                    data.externalfile = re.sub("^/", "", url.path())
-                data.use_externalfile = True
-                _info = QtCore.QFileInfo(data.externalfile)
-                _suffix = _info.completeSuffix()
-                if _suffix == "py":
-                    data.script_language = 'Python'
-                elif _suffix == 'mel':
-                    data.script_language = 'MEL'
-                data.label = _info.completeBaseName()
+                    path = re.sub("^/", "", url.path())
+                # 外部エディタから投げ込んだ場合もこちらに来るので回避
+                if path != '':
+                    data.externalfile = path
+                    data.use_externalfile = True
+                    _info = QtCore.QFileInfo(data.externalfile)
+                    _suffix = _info.completeSuffix()
+                    if _suffix == "py":
+                        data.script_language = 'Python'
+                    elif _suffix == 'mel':
+                        data.script_language = 'MEL'
+                    data.label = _info.completeBaseName()
 
             btn = self.create_button(data)
 
