@@ -96,7 +96,7 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         self.button_maya_icon.setIcon(QtGui.QIcon(':/mayaIcon.png'))
 
         # コールバック関数の設定
-        func = self._preview_button_drawing
+        func = self._redraw_ui
         self.text_label.textChanged.connect(func)
         self.text_tooltip.textChanged.connect(func)
         self.checkbox_tooltip.stateChanged.connect(func)
@@ -110,12 +110,34 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         self.spinbox_icon_size.valueChanged.connect(func)
         self.spinbox_label_font_size.valueChanged.connect(func)
 
+        self.text_script_code.textChanged.connect(func)
+        self.combo_script_language.currentIndexChanged.connect(func)
+
         self.button_maya_icon.clicked.connect(self._get_maya_icon)
         self.button_icon.clicked.connect(self._get_icon)
+
+        self.button_externalfile.clicked.connect(self._get_externalfile)
+        self.checkbox_externalfile.stateChanged.connect(func)
+        self.line_externalfile.textChanged.connect(func)
 
         self.checkbox_bgcolor.stateChanged.connect(func)
         self.button_bgcolor.clicked.connect(self._select_bgcolor)
 
+    def _redraw_ui(self):
+        self.text_script_code.setReadOnly(self.checkbox_externalfile.isChecked())
+
+        #外部ファイルを指定されている場合は言語を強制変更
+        if self.checkbox_externalfile.isChecked() is True:
+            _path = self.line_externalfile.text()
+            _suffix = QtCore.QFileInfo(_path).completeSuffix()
+            if _suffix == "py":
+                script_language = 'Python'
+            elif _suffix == 'mel':
+                script_language = 'MEL'
+            index = self.combo_script_language.findText(script_language)
+            self.combo_script_language.setCurrentIndex(index)
+
+        self._preview_button_drawing()
 
     def _select_bgcolor(self):
         color = QtWidgets.QColorDialog.getColor(self.bgcolor, self)
@@ -148,6 +170,12 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
 
         self.checkbox_bgcolor.setChecked(data.use_bgcolor)
         self.bgcolor = data.bgcolor
+
+        self.checkbox_externalfile.setChecked(data.use_externalfile)
+        self.line_externalfile.setText(data.externalfile)
+
+        index = self.combo_script_language.findText(data.script_language)
+        self.combo_script_language.setCurrentIndex(index)
 
     def _replace_code_textedit(self, parent):
         #オリジナルの行番号付きLineEcitに差し替える
@@ -183,6 +211,11 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', os.path.expanduser('~') + '/Desktop')
         self.line_icon_file.setText(filename[0])
 
+    def _get_externalfile(self):
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', os.path.expanduser('~') + '/Desktop')
+        path = filename[0]
+        self.line_externalfile.setText(path)
+
     def eventFilter(self, o, e):
         if e.type() == QtCore.QEvent.Paint and o == self.side:
             self.draw_line_number(o)
@@ -215,6 +248,10 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
 
         data.use_bgcolor = self.checkbox_bgcolor.isChecked()
         data.bgcolor = self.bgcolor
+
+        data.use_externalfile = self.checkbox_externalfile.isChecked()
+        data.externalfile = self.line_externalfile.text()
+        data.script_language = self.combo_script_language.currentText()
 
         return data
 

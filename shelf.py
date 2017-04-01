@@ -8,7 +8,7 @@ reload(button_setting)
 import json
 import os
 import pymel.core as pm
-
+import re
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     TITLE = "SiShelf"
@@ -47,11 +47,20 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         menu.addSeparator()
         menu.addAction('Edit the selected button', self._edit_selected_button)
         menu.addAction('Delete the selected button', self._delete_selected_button)
+
+        curor = QtGui.QCursor.pos()
+        # ボタンが矩形で選択されていなければマウス位置の下のボタンを選択しておく
+        if len(self.selected) == 0:
+            _ui = get_show_repr()
+            _pos = QtCore.QPoint(curor.x() - _ui['x'], curor.y() - _ui['y'])
+            rect = QtCore.QRect(_pos, _pos)
+            self._get_button_in_rectangle(rect)
+            self._set_stylesheet()
+            self.update()
         # マウス位置に出現
-        menu.exec_(QtGui.QCursor.pos())
+        menu.exec_(curor)
 
     def _add_tab(self):
-
         new_tab_name, status = QtWidgets.QInputDialog.getText(
             self,
             'Add New Tab',
@@ -106,11 +115,24 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         if mimedata.hasText() is True or mimedata.hasUrls() is True:
             data = button.ButtonData()
+            data.label = 'newButton'
+            data.position = position
 
             if mimedata.hasText() is True:
                 data.code = mimedata.text()
-                data.label = 'newButton'
-                data.position = position
+
+            if mimedata.hasUrls() is True:
+                #複数ファイルの場合は最後のファイルが有効になる
+                for url in mimedata.urls():
+                    data.externalfile = re.sub("^/", "", url.path())
+                data.use_externalfile = True
+                _info = QtCore.QFileInfo(data.externalfile)
+                _suffix = _info.completeSuffix()
+                if _suffix == "py":
+                    data.script_language = 'Python'
+                elif _suffix == 'mel':
+                    data.script_language = 'MEL'
+                data.label = _info.completeBaseName()
 
             btn = self.create_button(data)
 
@@ -143,7 +165,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.band = QtCore.QRect()
 
     def mouseMoveEvent(self, event):
-
         if self.band is not None:
             self.band = QtCore.QRect(self.origin, event.pos())
             self.update()
@@ -155,17 +176,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if not self.origin:
             self.origin = event.pos()
         rect = QtCore.QRect(self.origin, event.pos()).normalized()
-
-        self.selected = []
-        for child in self.findChildren(button.ButtonWidget):
-            # 矩形内に位置しているかを判定
-            if rect.intersects(self._get_button_absolute_geometry(child)) is False:
-                continue
-            # アクティブなタブ以外の物は選択対象外
-            if child.parent != self.currentWidget():
-                continue
-            self.selected.append(child)
-
+        self._get_button_in_rectangle(rect)
         self._set_stylesheet()
         self.origin = QtCore.QPoint()
         self.band = None
@@ -184,6 +195,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # -----------------------
     # Others
     # -----------------------
+    def _get_button_in_rectangle(self, rect):
+        print rect
+        self.selected = []
+        for child in self.findChildren(button.ButtonWidget):
+            # 矩形内に位置しているかを判定
+            if rect.intersects(self._get_button_absolute_geometry(child)) is False:
+                continue
+            # アクティブなタブ以外の物は選択対象外
+            if child.parent != self.currentWidget():
+                continue
+            self.selected.append(child)
+
     def _get_button_absolute_geometry(self, button):
         '''
         type:ShelfButton.ButtonWidget -> QtCore.QSize
