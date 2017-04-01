@@ -14,6 +14,7 @@ class LineNumberTextEdit(QtWidgets.QTextEdit):
         self.side.installEventFilter(self)
         self.side.setGeometry(0, 0, self.fontMetrics().width("8") * 8, self.height())
         self.setAcceptDrops(False)
+        self.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
 
     def paintEvent(self, e):
         super(LineNumberTextEdit, self).paintEvent(e)
@@ -176,11 +177,6 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
 
         index = self.combo_script_language.findText(data.script_language)
         self.combo_script_language.setCurrentIndex(index)
-
-    def _replace_code_textedit(self, parent):
-        #オリジナルの行番号付きLineEcitに差し替える
-        #designerでのカスタムウィジェットへの差し替えが上手くいかなかったので。
-        self.text_script_code = self._replace_widget(parent, self.text_script_code, LineNumberTextEdit(self))
 
     def _replace_widget(self, parent, old_widget, new_widget):
         parent.removeWidget(old_widget)
