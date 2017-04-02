@@ -12,9 +12,10 @@ import re
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     TITLE = "SiShelf"
-    URL = ""
+    URL = "https://github.com/mochio326/SiShelf"
     # 矩形の枠の太さ
     PEN_WIDTH = 1
+    CURRENT_TAB_FLAG = '(current)'
 
     def __init__(self, parent=None):
         super(SiShelfWeight, self).__init__(parent)
@@ -25,7 +26,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.setObjectName(self.TITLE)
         self.setWindowTitle(self.TITLE)
 
-        self.insertTab(0, QtWidgets.QWidget(), 'Tab1')
+        self.load_tab_data()
         self.setMovable(True)
 
         self.setAcceptDrops(True)
@@ -41,10 +42,61 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.customContextMenuRequested.connect(self._context_menu)
         self.currentChanged.connect(self._current_tab_change)
 
+    def closeEvent(self, event):
+        '''
+        なぜかウインドウ右上の×ボタンで閉じた場合に発動しない。。。
+        '''
+        pass
+
+    def __get_tab_data_path(self):
+        dir = os.path.dirname(os.path.abspath(__file__))
+        path = '{0}\\tab_data.json'.format(dir)
+        return path
+
+    def load_tab_data(self):
+        path = self.__get_tab_data_path()
+        if os.path.isfile(path) is False:
+            self.insertTab(0, QtWidgets.QWidget(), 'Tab1')
+            return
+        with open(path) as fh:
+            js = json.loads(fh.read(), "utf-8")
+
+        current = 0
+        for name, vars in js.items():
+            tab_number = self.count()
+            if self.CURRENT_TAB_FLAG in name:
+                current = tab_number
+                name = name.replace(self.CURRENT_TAB_FLAG, '')
+            tab = self.insertTab(tab_number, QtWidgets.QWidget(), name)
+            for var in vars:
+                # 辞書からインスタンスのプロパティに代入
+                data = button.ButtonData()
+                {setattr(data, k, v) for k, v in var.items()}
+                button.create_button(self.widget(tab_number), data)
+            self.setCurrentIndex(current)
+
+    def save_tab_data(self):
+        dict = {}
+        current = self.currentIndex
+        for i in range(self.count()):
+            tab_name = self.tabText(i)
+            if i == self.currentIndex():
+                tab_name += self.CURRENT_TAB_FLAG
+            tab_data = []
+            for child in self.widget(i).findChildren(button.ButtonWidget):
+                tab_data.append(vars(child.data))
+            dict[tab_name] = tab_data
+
+        path = self.__get_tab_data_path()
+        text = json.dumps(dict, sort_keys=True, ensure_ascii=False, indent=2)
+        with open(path, 'w') as fh:
+            fh.write(text.encode('utf-8'))
+
     def _current_tab_change(self):
         self.selected = []
         self._set_stylesheet()
         self.update()
+        self.save_tab_data()
 
     def _context_menu(self, event):
         menu = QtWidgets.QMenu()
@@ -78,11 +130,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
         self.insertTab(self.count() + 1, QtWidgets.QWidget(), new_tab_name)
         self.setCurrentIndex(self.count() + 1)
+        self.save_tab_data()
 
     def _delete_selected_button(self):
         for s in self.selected:
             self.delete_button(s)
         self.selected = []
+        self.save_tab_data()
 
     def _edit_selected_button(self):
         if len(self.selected) != 1:
@@ -93,6 +147,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _re is None:
             return
         self.delete_button(btn)
+        self.save_tab_data()
 
     def delete_button(self, button):
         button.deleteLater()
@@ -142,15 +197,20 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                         data.script_language = 'Python'
                     elif _suffix == 'mel':
                         data.script_language = 'MEL'
+                    else:
+                        print('This file format is not supported.')
+                        return
                     data.label = _info.completeBaseName()
 
-            btn = self.create_button(data)
+            self.create_button(data)
+            self.save_tab_data()
 
         elif isinstance(event.source(), button.ButtonWidget):
             # ドラッグ後のマウスの位置にボタンを配置
             event.source().move(position)
             event.source().data.position_x = x
             event.source().data.position_y = y
+            self.save_tab_data()
 
             # よくわからん
             event.setDropAction(QtCore.Qt.MoveAction)
@@ -236,8 +296,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.setStyleSheet(css)
 
 
-# #################################################################################################
-# ここから実行関数
 # #################################################################################################
 
 def get_ui():
