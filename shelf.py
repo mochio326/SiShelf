@@ -43,10 +43,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.customContextMenuRequested.connect(self._context_menu)
         self.currentChanged.connect(self._current_tab_change)
 
+        self.tabBar().tabMoved.connect(self._tab_moved)
+
     def _current_tab_change(self):
         self.selected = []
         self._set_stylesheet()
         self.update()
+        self.save_tab_data()
+
+    def _tab_moved(self, event):
+        self.save_tab_data()
 
     # -----------------------
     # ContextMenu
@@ -55,9 +61,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         menu = QtWidgets.QMenu()
         # 項目名と実行する関数の設定
         menu.addAction('Add Tab', self._add_tab)
+        menu.addAction('Rename Tab', self._rename_tab)
         menu.addSeparator()
-        menu.addAction('Edit the selected button', self._edit_selected_button)
-        menu.addAction('Delete the selected button', self._delete_selected_button)
+        menu.addAction('New button', self._new_button)
+        menu.addAction('Edit selected button', self._edit_selected_button)
+        menu.addAction('Delete selected button', self._delete_selected_button)
+        menu.addAction('Button default setting', self._button_default_setting)
 
         curor = QtGui.QCursor.pos()
         # ボタンが矩形で選択されていなければマウス位置の下のボタンを選択しておく
@@ -71,6 +80,23 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         # マウス位置に出現
         menu.exec_(curor)
 
+    def _button_default_setting(self):
+        pass
+
+    def _rename_tab(self):
+        new_tab_name, status = QtWidgets.QInputDialog.getText(
+            self,
+            'Rename Tab',
+            'Specify new tab name',
+            QtWidgets.QLineEdit.Normal,
+            self.tabText(self.currentIndex())
+        )
+        if not status:
+            return
+        self.setTabText(self.currentIndex(), new_tab_name)
+        self.save_tab_data()
+
+
     def _add_tab(self):
         new_tab_name, status = QtWidgets.QInputDialog.getText(
             self,
@@ -83,11 +109,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
         self.insertTab(self.count() + 1, QtWidgets.QWidget(), new_tab_name)
         self.setCurrentIndex(self.count() + 1)
+        self.save_tab_data()
 
     def _delete_selected_button(self):
         for s in self.selected:
             self.delete_button(s)
         self.selected = []
+        self.save_tab_data()
 
     def _edit_selected_button(self):
         if len(self.selected) != 1:
@@ -98,6 +126,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _re is None:
             return
         self.delete_button(btn)
+        self.save_tab_data()
+
+    def _new_button(self):
+        data = button.ButtonData()
+        self.create_button(data)
+        self.save_tab_data()
 
     def delete_button(self, button):
         button.deleteLater()
@@ -122,13 +156,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def load_tab_data(self):
         path = self.__get_tab_data_path()
-        if os.path.isfile(path) is False:
+        data = not_escape_json_load(path)
+        if data is None:
             self.insertTab(0, QtWidgets.QWidget(), 'Tab1')
             return
-        with open(path) as fh:
-            js = json.loads(fh.read(), "utf-8")
 
-        for vars in js:
+        for vars in data:
             tab_number = self.count()
             self.insertTab(tab_number, QtWidgets.QWidget(), vars['name'])
             if vars['current'] is True:
@@ -140,36 +173,27 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 button.create_button(self.widget(tab_number), data)
 
     def save_tab_data(self):
-        list = []
-        current = self.currentIndex
+        ls = []
+        current = self.currentIndex()
         for i in range(self.count()):
             tab_data = {}
             tab_data['name'] = self.tabText(i)
             # カレントタブ
-            if i == self.currentIndex():
-                tab_data['current'] = True
-            else:
-                tab_data['current'] = False
+            tab_data['current'] = (i == current)
             # ボタンのデータ
             b = []
             for child in self.widget(i).findChildren(button.ButtonWidget):
                 b.append(vars(child.data))
             tab_data['button'] = b
-
-            list.append(tab_data)
+            ls.append(tab_data)
 
         meke_save_dir()
         path = self.__get_tab_data_path()
-        text = json.dumps(list, sort_keys=True, ensure_ascii=False, indent=2)
-        with open(path, 'w') as fh:
-            fh.write(text.encode('utf-8'))
+        not_escape_json_dump(path, ls)
 
     # -----------------------
     # Event
     # -----------------------
-    def closeEvent(self, event):
-        self.save_tab_data()
-
     def dropEvent(self, event):
         mimedata = event.mimeData()
         position = event.pos()
@@ -182,7 +206,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         if mimedata.hasText() is True or mimedata.hasUrls() is True:
             data = button.ButtonData()
-            data.label = 'newButton'
             data.position = position
 
             if mimedata.hasText() is True:
@@ -208,12 +231,14 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                     data.label = _info.completeBaseName()
 
             self.create_button(data)
+            self.save_tab_data()
 
         elif isinstance(event.source(), button.ButtonWidget):
             # ドラッグ後のマウスの位置にボタンを配置
             event.source().move(position)
             event.source().data.position_x = x
             event.source().data.position_y = y
+            self.save_tab_data()
 
             # よくわからん
             event.setDropAction(QtCore.Qt.MoveAction)
@@ -269,7 +294,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # Others
     # -----------------------
     def _get_button_in_rectangle(self, rect):
-        print rect
         self.selected = []
         for child in self.findChildren(button.ButtonWidget):
             # アクティブなタブ以外の物は選択対象外
@@ -294,10 +318,26 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         css = 'QToolButton:hover{background:#707070;}'
         # 選択中のボタンを誇張
         for s in self.selected:
-            print s.objectName()
             css += '#' + s.objectName() + '{border-color:#aaaaaa; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
 
+
+# #################################################################################################
+
+# http://qiita.com/tadokoro/items/131268c9a0fd1cf85bf4
+# 日本語をエスケープさせずにjsonを読み書きする
+def not_escape_json_dump(path, data):
+    text = json.dumps(data, sort_keys=True, ensure_ascii=False, indent=2)
+    with open(path, 'w') as fh:
+        fh.write(text.encode('utf-8'))
+
+
+def not_escape_json_load(path):
+    if os.path.isfile(path) is False:
+        return None
+    with open(path) as fh:
+        data = json.loads(fh.read(), "utf-8")
+    return data
 
 # #################################################################################################
 
@@ -378,7 +418,6 @@ def restoration_ui():
     dict = json.load(f)
     if dict['display'] is False:
         return
-    print dict
     if dict['floating'] is False and dict['area'] is not None:
         window = SiShelfWeight()
         window.show(
