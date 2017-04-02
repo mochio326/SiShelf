@@ -46,7 +46,7 @@ class ButtonWidget(QtWidgets.QToolButton):
 
 
 class ButtonData(object):
-    def __init__(self, label='', code='', path=''):
+    def __init__(self, label='newButton', code='', path=''):
         self.label = label
         self.label_font_size = 10
         self.tooltip = ''
