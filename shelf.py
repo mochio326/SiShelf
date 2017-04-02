@@ -9,6 +9,7 @@ import json
 import os
 import pymel.core as pm
 import re
+import sys
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     TITLE = "SiShelf"
@@ -42,62 +43,14 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.customContextMenuRequested.connect(self._context_menu)
         self.currentChanged.connect(self._current_tab_change)
 
-    def closeEvent(self, event):
-        '''
-        なぜかウインドウ右上の×ボタンで閉じた場合に発動しない。。。
-        '''
-        pass
-
-    def __get_tab_data_path(self):
-        dir = os.path.dirname(os.path.abspath(__file__))
-        path = '{0}\\tab_data.json'.format(dir)
-        return path
-
-    def load_tab_data(self):
-        path = self.__get_tab_data_path()
-        if os.path.isfile(path) is False:
-            self.insertTab(0, QtWidgets.QWidget(), 'Tab1')
-            return
-        with open(path) as fh:
-            js = json.loads(fh.read(), "utf-8")
-
-        current = 0
-        for name, vars in js.items():
-            tab_number = self.count()
-            if self.CURRENT_TAB_FLAG in name:
-                current = tab_number
-                name = name.replace(self.CURRENT_TAB_FLAG, '')
-            tab = self.insertTab(tab_number, QtWidgets.QWidget(), name)
-            for var in vars:
-                # 辞書からインスタンスのプロパティに代入
-                data = button.ButtonData()
-                {setattr(data, k, v) for k, v in var.items()}
-                button.create_button(self.widget(tab_number), data)
-            self.setCurrentIndex(current)
-
-    def save_tab_data(self):
-        dict = {}
-        current = self.currentIndex
-        for i in range(self.count()):
-            tab_name = self.tabText(i)
-            if i == self.currentIndex():
-                tab_name += self.CURRENT_TAB_FLAG
-            tab_data = []
-            for child in self.widget(i).findChildren(button.ButtonWidget):
-                tab_data.append(vars(child.data))
-            dict[tab_name] = tab_data
-
-        path = self.__get_tab_data_path()
-        text = json.dumps(dict, sort_keys=True, ensure_ascii=False, indent=2)
-        with open(path, 'w') as fh:
-            fh.write(text.encode('utf-8'))
-
     def _current_tab_change(self):
         self.selected = []
         self._set_stylesheet()
         self.update()
-        self.save_tab_data()
 
+    # -----------------------
+    # ContextMenu
+    # -----------------------
     def _context_menu(self, event):
         menu = QtWidgets.QMenu()
         # 項目名と実行する関数の設定
@@ -130,13 +83,11 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
         self.insertTab(self.count() + 1, QtWidgets.QWidget(), new_tab_name)
         self.setCurrentIndex(self.count() + 1)
-        self.save_tab_data()
 
     def _delete_selected_button(self):
         for s in self.selected:
             self.delete_button(s)
         self.selected = []
-        self.save_tab_data()
 
     def _edit_selected_button(self):
         if len(self.selected) != 1:
@@ -147,7 +98,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _re is None:
             return
         self.delete_button(btn)
-        self.save_tab_data()
 
     def delete_button(self, button):
         button.deleteLater()
@@ -163,8 +113,63 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         return btn
 
     # -----------------------
+    # Save Load
+    # -----------------------
+    def __get_tab_data_path(self):
+        meke_save_dir()
+        path = os.path.join(get_save_dir(), 'parts.json')
+        return path
+
+    def load_tab_data(self):
+        path = self.__get_tab_data_path()
+        if os.path.isfile(path) is False:
+            self.insertTab(0, QtWidgets.QWidget(), 'Tab1')
+            return
+        with open(path) as fh:
+            js = json.loads(fh.read(), "utf-8")
+
+        for vars in js:
+            tab_number = self.count()
+            self.insertTab(tab_number, QtWidgets.QWidget(), vars['name'])
+            if vars['current'] is True:
+                self.setCurrentIndex(tab_number)
+            for var in vars['button']:
+                # 辞書からインスタンスのプロパティに代入
+                data = button.ButtonData()
+                {setattr(data, k, v) for k, v in var.items()}
+                button.create_button(self.widget(tab_number), data)
+
+    def save_tab_data(self):
+        list = []
+        current = self.currentIndex
+        for i in range(self.count()):
+            tab_data = {}
+            tab_data['name'] = self.tabText(i)
+            # カレントタブ
+            if i == self.currentIndex():
+                tab_data['current'] = True
+            else:
+                tab_data['current'] = False
+            # ボタンのデータ
+            b = []
+            for child in self.widget(i).findChildren(button.ButtonWidget):
+                b.append(vars(child.data))
+            tab_data['button'] = b
+
+            list.append(tab_data)
+
+        meke_save_dir()
+        path = self.__get_tab_data_path()
+        text = json.dumps(list, sort_keys=True, ensure_ascii=False, indent=2)
+        with open(path, 'w') as fh:
+            fh.write(text.encode('utf-8'))
+
+    # -----------------------
     # Event
     # -----------------------
+    def closeEvent(self, event):
+        self.save_tab_data()
+
     def dropEvent(self, event):
         mimedata = event.mimeData()
         position = event.pos()
@@ -203,14 +208,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                     data.label = _info.completeBaseName()
 
             self.create_button(data)
-            self.save_tab_data()
 
         elif isinstance(event.source(), button.ButtonWidget):
             # ドラッグ後のマウスの位置にボタンを配置
             event.source().move(position)
             event.source().data.position_x = x
             event.source().data.position_y = y
-            self.save_tab_data()
 
             # よくわからん
             event.setDropAction(QtCore.Qt.MoveAction)
@@ -337,17 +340,30 @@ def get_show_repr():
     return dict
 
 
-def get_json_path():
+def get_save_dir():
     dir = os.path.dirname(os.path.abspath(__file__))
-    path = '{0}\\{1}.json'.format(dir, SiShelfWeight.TITLE)
-    return path
+    return os.path.join(dir, 'data')
+
+
+def get_shelf_data_path():
+    return os.path.join(get_save_dir(), 'shelf.json')
+
+def meke_save_dir():
+    dir = get_save_dir()
+    if os.path.isdir(dir) is False:
+        os.makedirs(dir)
 
 
 def quit_app():
     dict = get_show_repr()
-    f = open(get_json_path(), 'w')
+    meke_save_dir()
+    f = open(get_shelf_data_path(), 'w')
     json.dump(dict, f)
     f.close()
+
+    ui = get_ui()
+    if ui is not None:
+        ui.save_tab_data()
 
 
 def make_quit_app_job():
@@ -355,7 +371,7 @@ def make_quit_app_job():
 
 
 def restoration_ui():
-    path = get_json_path()
+    path = get_shelf_data_path()
     if os.path.isfile(path) is False:
         return
     f = open(path, 'r')
@@ -373,15 +389,32 @@ def restoration_ui():
             height=dict['height']
         )
 
-def main():
+
+def make_ui():
     # 同名のウインドウが存在したら削除
     ui = get_ui()
     if ui is not None:
         ui.close()
     app = QtWidgets.QApplication.instance()
-    window = SiShelfWeight()
-    window.show(dockable=True)
+    ui = SiShelfWeight()
     return ui
+
+
+def popup():
+    # マウス位置にポップアップ
+    ui = make_ui()
+    curor = QtGui.QCursor.pos()
+    ui.show(dockable=True, x=curor.x(), y=curor.y())
+    sys.exit()
+    app.exec_()
+
+
+def main():
+    # 画面中央に表示
+    ui = make_ui()
+    ui.show(dockable=True)
+    sys.exit()
+    app.exec_()
 
 
 if __name__ == '__main__':
