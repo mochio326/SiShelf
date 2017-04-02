@@ -13,7 +13,6 @@ class ButtonWidget(QtWidgets.QToolButton):
         super(ButtonWidget, self).__init__(parent)
         self.data = data
         self.preview = preview
-        print vars(data)
 
     def mouseMoveEvent(self, event):
         # 中クリックだけドラッグ＆ドロップ可能にする
