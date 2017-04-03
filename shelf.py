@@ -10,6 +10,7 @@ import os
 import pymel.core as pm
 import re
 import sys
+import copy
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     TITLE = "SiShelf"
@@ -37,6 +38,9 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.band = None
         self.selected = []
         self.floating_save = False
+        self.clipboard = None
+        self.context_pos = QtCore.QPoint()
+        self.cut_flag = False
 
         self._set_stylesheet()
 
@@ -64,25 +68,61 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         menu.addAction('Add Tab', self._add_tab)
         menu.addAction('Rename Tab', self._rename_tab)
         menu.addSeparator()
-        menu.addAction('New button', self._new_button)
-        menu.addAction('Edit selected button', self._edit_selected_button)
-        menu.addAction('Delete selected button', self._delete_selected_button)
+        menu.addAction('Add button', self._add_button)
         menu.addAction('Button default setting', self._button_default_setting)
+        menu.addSeparator()
+        menu.addAction('Edit', self._edit_selected_button)
+        menu.addAction('Delete', self._delete_selected_button)
+        menu.addAction('Copy', self._copy)
+        menu.addAction('Paste', self._paste)
+        menu.addAction('Cut', self._cut)
 
         curor = QtGui.QCursor.pos()
+
+        _ui = get_show_repr()
+        pos = QtCore.QPoint(curor.x() - _ui['x'], curor.y() - _ui['y'])
+        # タブバーの高さを考慮
+        self.context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
         # ボタンが矩形で選択されていなければマウス位置の下のボタンを選択しておく
         if len(self.selected) == 0:
-            _ui = get_show_repr()
-            _pos = QtCore.QPoint(curor.x() - _ui['x'], curor.y() - _ui['y'])
-            rect = QtCore.QRect(_pos, _pos)
+            rect = QtCore.QRect(pos, self.context_pos)
             self._get_button_in_rectangle(rect)
             self._set_stylesheet()
             self.update()
         # マウス位置に出現
         menu.exec_(curor)
 
+    def _copy(self):
+        self.clipboard = copy.deepcopy(self.selected[0].data)
+
+    def _paste(self):
+        if self.clipboard is None:
+            return
+        data = copy.deepcopy(self.clipboard)
+        data.position = self.context_pos
+        btn = button.create_button(self.currentWidget(), data)
+        self.selected = []
+        self.repaint()
+        self.save_tab_data()
+        # カットの場合は貼り付けは一度だけ
+        if self.cut_flag is True:
+            self.clipboard = None
+            self.cut_flag = False
+
+    def _cut(self):
+        self._copy()
+        self.delete_button(self.selected[0])
+        self.cut_flag = True
+
     def _button_default_setting(self):
-        pass
+        data = self._get_button_default_data()
+        data, result = button_setting.SettingDialog.get_data(self, data)
+        if result is not True:
+            print("Cancel.")
+            return None
+        meke_save_dir()
+        path = get_button_default_filepath()
+        not_escape_json_dump(path, vars(data))
 
     def _rename_tab(self):
         new_tab_name, status = QtWidgets.QInputDialog.getText(
@@ -96,7 +136,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
         self.setTabText(self.currentIndex(), new_tab_name)
         self.save_tab_data()
-
 
     def _add_tab(self):
         new_tab_name, status = QtWidgets.QInputDialog.getText(
@@ -129,12 +168,14 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.delete_button(btn)
         self.save_tab_data()
 
-    def _new_button(self):
-        data = button.ButtonData()
+    def _add_button(self):
+        data = self._get_button_default_data()
+        data.position = self.context_pos
         self.create_button(data)
         self.save_tab_data()
 
     def delete_button(self, button):
+        button.setParent(None)
         button.deleteLater()
 
     def create_button(self, data):
@@ -207,7 +248,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         position = QtCore.QPoint(x, y)
 
         if mimedata.hasText() is True or mimedata.hasUrls() is True:
-            data = button.ButtonData()
+            data = self._get_button_default_data()
             data.position = position
 
             if mimedata.hasText() is True:
@@ -333,6 +374,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             css += '#' + s.objectName() + '{border-color:#aaaaaa; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
 
+    def _get_button_default_data(self):
+        path = get_button_default_filepath()
+        data = button.ButtonData()
+        js = not_escape_json_load(path)
+        if js is not None:
+            {setattr(data, k, v) for k, v in js.items()}
+        return data
 
 # #################################################################################################
 
@@ -401,6 +449,9 @@ def get_save_dir():
 def get_shelf_docking_filepath():
     return os.path.join(get_save_dir(), 'shelf_docking.json')
 
+
+def get_button_default_filepath():
+    return os.path.join(get_save_dir(), 'button_default.json')
 
 def get_shelf_floating_filepath():
     return os.path.join(get_save_dir(), 'shelf_floating.json')
