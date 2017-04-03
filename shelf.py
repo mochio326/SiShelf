@@ -36,6 +36,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.origin = None
         self.band = None
         self.selected = []
+        self.floating_save = False
 
         self._set_stylesheet()
 
@@ -194,6 +195,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # -----------------------
     # Event
     # -----------------------
+
     def dropEvent(self, event):
         mimedata = event.mimeData()
         position = event.pos()
@@ -290,6 +292,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             painter.drawRect(self.band)
             painter.restore()
 
+    def closeEvent(self, event):
+        if self.floating_save is False:
+            print self.isFloating()
+            if self.isFloating() is True:
+                dict = get_show_repr()
+                meke_save_dir()
+                f = open(get_shelf_floating_filepath(), 'w')
+                json.dump(dict, f)
+                f.close()
+        self.floating_save = True
     # -----------------------
     # Others
     # -----------------------
@@ -339,6 +351,7 @@ def not_escape_json_load(path):
         data = json.loads(fh.read(), "utf-8")
     return data
 
+
 # #################################################################################################
 
 def get_ui():
@@ -354,8 +367,8 @@ def get_show_repr():
     dict['dockable'] = True
     dict['floating'] = True
     dict['area'] = None
-    dict['x'] = 0
-    dict['y'] = 0
+    dict['x'] = 200
+    dict['y'] = 200
     dict['width'] = 400
     dict['height'] = 150
 
@@ -385,8 +398,13 @@ def get_save_dir():
     return os.path.join(dir, 'data')
 
 
-def get_shelf_data_path():
-    return os.path.join(get_save_dir(), 'shelf.json')
+def get_shelf_docking_filepath():
+    return os.path.join(get_save_dir(), 'shelf_docking.json')
+
+
+def get_shelf_floating_filepath():
+    return os.path.join(get_save_dir(), 'shelf_floating.json')
+
 
 def meke_save_dir():
     dir = get_save_dir()
@@ -397,21 +415,21 @@ def meke_save_dir():
 def quit_app():
     dict = get_show_repr()
     meke_save_dir()
-    f = open(get_shelf_data_path(), 'w')
+    f = open(get_shelf_docking_filepath(), 'w')
     json.dump(dict, f)
     f.close()
-
-    ui = get_ui()
-    if ui is not None:
-        ui.save_tab_data()
 
 
 def make_quit_app_job():
     pm.scriptJob(e=("quitApplication", pm.Callback(quit_app)))
 
 
-def restoration_ui():
-    path = get_shelf_data_path()
+def restoration_docking_ui():
+    '''
+    ドッキングした状態のUIを復元する
+    :return:
+    '''
+    path = get_shelf_docking_filepath()
     if os.path.isfile(path) is False:
         return
     f = open(path, 'r')
@@ -429,6 +447,15 @@ def restoration_ui():
         )
 
 
+def get_floating_data():
+    path = get_shelf_floating_filepath()
+    if os.path.isfile(path) is False:
+        return None
+    f = open(path, 'r')
+    dict = json.load(f)
+    return dict
+
+
 def make_ui():
     # 同名のウインドウが存在したら削除
     ui = get_ui()
@@ -443,7 +470,11 @@ def popup():
     # マウス位置にポップアップ
     ui = make_ui()
     curor = QtGui.QCursor.pos()
-    ui.show(dockable=True, x=curor.x(), y=curor.y())
+    floating = get_floating_data()
+    if floating is None:
+        ui.show(dockable=True, x=curor.x(), y=curor.y())
+    else:
+        ui.show(dockable=True, x=curor.x(), y=curor.y(), width=floating['width'], height=floating['height'])
     sys.exit()
     app.exec_()
 
@@ -451,7 +482,13 @@ def popup():
 def main():
     # 画面中央に表示
     ui = make_ui()
-    ui.show(dockable=True)
+    floating = get_floating_data()
+    if floating is None:
+        ui.show(dockable=True)
+    else:
+        # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる
+        # ui.show(dockable=True, x=floating['x'], y=floating['y'], width=floating['width'], height=floating['height'])
+        ui.show(dockable=True, width=floating['width'], height=floating['height'])
     sys.exit()
     app.exec_()
 
