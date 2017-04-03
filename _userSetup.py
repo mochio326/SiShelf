@@ -1,6 +1,6 @@
-#mayaI—¹‚ÉSiShelf‚Ìó‘Ô‚ğ‹L˜^
+#mayaï¿½Iï¿½ï¿½ï¿½ï¿½ï¿½ï¿½SiShelfï¿½Ìï¿½Ô‚ï¿½ï¿½Lï¿½^
 import SiShelf.shelf
 SiShelf.shelf.make_quit_app_job()
-#UI\’zŒã‚ÉSiShelf‚ğ•œŒ³
+#UIï¿½\ï¿½zï¿½ï¿½ï¿½SiShelfï¿½ğ•œŒï¿½
 import maya.utils
-maya.utils.executeDeferred(SiShelf.shelf.restoration_ui)
+maya.utils.executeDeferred(SiShelf.shelf.restoration_docking_ui)
