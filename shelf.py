@@ -67,6 +67,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         # 項目名と実行する関数の設定
         menu.addAction('Add Tab', self._add_tab)
         menu.addAction('Rename Tab', self._rename_tab)
+        menu.addAction('Delete Tab', self._delete_tab)
         menu.addSeparator()
         menu.addAction('Add button', self._add_button)
         menu.addAction('Button default setting', self._button_default_setting)
@@ -123,6 +124,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         meke_save_dir()
         path = get_button_default_filepath()
         not_escape_json_dump(path, vars(data))
+
+    def _delete_tab(self):
+        status = QtWidgets.QMessageBox.question(self, 'Confirmation',
+                                            'Are you sure you want to delete the tab?',
+                                            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                            QtWidgets.QMessageBox.No
+                                            )
+        if status == QtWidgets.QMessageBox.Yes:
+            self.removeTab(self.currentIndex())
+            self.save_tab_data()
+        else:
+            return
 
     def _rename_tab(self):
         new_tab_name, status = QtWidgets.QInputDialog.getText(
