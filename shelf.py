@@ -3,8 +3,10 @@ from vendor.Qt import QtCore, QtGui, QtWidgets
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import button_setting
 import button
+import partition
 reload(button)
 reload(button_setting)
+reload(partition)
 import json
 import os
 import pymel.core as pm
@@ -45,6 +47,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.customContextMenuRequested.connect(self._context_menu)
         self.currentChanged.connect(self._current_tab_change)
         self.tabBar().tabMoved.connect(self._tab_moved)
+
+        partition.PartitionWidget(self.currentWidget())
 
     def _current_tab_change(self):
         self.selected = []
@@ -296,6 +300,15 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             event.setDropAction(QtCore.Qt.MoveAction)
             event.accept()
 
+        elif isinstance(event.source(), partition.PartitionWidget):
+            # ドラッグ後のマウスの位置にボタンを配置
+            event.source().move(_position)
+            self.save_tab_data()
+
+            # よくわからん
+            event.setDropAction(QtCore.Qt.MoveAction)
+            event.accept()
+
     def dragEnterEvent(self, event):
         '''
         ドラッグされたオブジェクトを許可するかどうかを決める
@@ -304,7 +317,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         mime = event.mimeData()
         if mime.hasText() is True or mime.hasUrls() is True:
             event.accept()
-        elif isinstance(event.source(), button.ButtonWidget):
+        elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
             event.accept()
         else:
             event.ignore()
