@@ -13,16 +13,16 @@ Softimageのシェルフをリスペクトして作成されたMaya用のシェ�
 
 ## 実行方法
 
-import SiShelf.shelf
-SiShelf.shelf.main()
-
-上記コードをスクリプトエディタ(Pythonタブ)に貼り付けて実行。
-
-
-import SiShelf.shelf
-SiShelf.shelf.popup()
-
-とすると、マウスの位置にポップアップします。
+import SiShelf.shelf  
+SiShelf.shelf.main()  
+  
+上記コードをスクリプトエディタ(Pythonタブ)に貼り付けて実行。  
+  
+  
+import SiShelf.shelf  
+SiShelf.shelf.popup()  
+  
+とすると、マウスの位置にポップアップします。  
 
 
 ## 使い方
