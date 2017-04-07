@@ -4,9 +4,11 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import button_setting
 import button
 import partition
+import lib
 reload(button)
 reload(button_setting)
 reload(partition)
+reload(lib)
 import json
 import os
 import pymel.core as pm
@@ -18,7 +20,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     TITLE = "SiShelf"
     URL = "https://github.com/mochio326/SiShelf"
     PEN_WIDTH = 1  # 矩形の枠の太さ
-    CURRENT_TAB_FLAG = '(current)'
 
     def __init__(self, parent=None):
         super(SiShelfWeight, self).__init__(parent)
@@ -48,7 +49,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.currentChanged.connect(self._current_tab_change)
         self.tabBar().tabMoved.connect(self._tab_moved)
 
-        partition.PartitionWidget(self.currentWidget())
+        partition.create(self.currentWidget(), partition.PartitionData())
 
     def _current_tab_change(self):
         self.selected = []
@@ -87,7 +88,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         # ボタンが矩形で選択されていなければマウス位置の下のボタンを選択しておく
         if len(self.selected) == 0:
             rect = QtCore.QRect(pos, self.context_pos)
-            self._get_button_in_rectangle(rect)
+            self._get_parts_in_rectangle(rect)
             self._set_stylesheet()
             self.update()
         # マウス位置に出現
@@ -101,7 +102,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
         data = copy.deepcopy(self.clipboard)
         data.position = self.context_pos
-        btn = button.create_button(self.currentWidget(), data)
+        btn = button.create(self.currentWidget(), data)
         self.selected = []
         self.repaint()
         self.save_tab_data()
@@ -112,7 +113,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _cut(self):
         self._copy()
-        self.delete_button(self.selected[0])
+        self.delete_parts(self.selected[0])
         self.cut_flag = True
 
     def _button_default_setting(self):
@@ -123,7 +124,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return None
         meke_save_dir()
         path = get_button_default_filepath()
-        not_escape_json_dump(path, vars(data))
+        lib.not_escape_json_dump(path, vars(data))
 
     def _delete_tab(self):
         _status = QtWidgets.QMessageBox.question(
@@ -167,7 +168,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _delete_selected_button(self):
         for s in self.selected:
-            self.delete_button(s)
+            self.delete_parts(s)
         self.selected = []
         self.save_tab_data()
 
@@ -179,7 +180,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _re = self.create_button(btn.data)
         if _re is None:
             return
-        self.delete_button(btn)
+        self.delete_parts(btn)
         self.save_tab_data()
 
     def _add_button(self):
@@ -188,16 +189,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.create_button(data)
         self.save_tab_data()
 
-    def delete_button(self, button):
-        button.setParent(None)
-        button.deleteLater()
+    def delete_parts(self, widget):
+        widget.setParent(None)
+        widget.deleteLater()
 
     def create_button(self, data):
         data, _result = button_setting.SettingDialog.get_data(self, data)
         if _result is not True:
             print("Cancel.")
             return None
-        btn = button.create_button(self.currentWidget(), data)
+        btn = button.create(self.currentWidget(), data)
         self.selected = []
         self.repaint()
         return btn
@@ -212,7 +213,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def load_tab_data(self):
         path = self.__get_tab_data_path()
-        data = not_escape_json_load(path)
+        data = lib.not_escape_json_load(path)
         if data is None:
             self.insertTab(0, QtWidgets.QWidget(), 'Tab1')
             return
@@ -226,7 +227,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 # 辞書からインスタンスのプロパティに代入
                 data = button.ButtonData()
                 {setattr(data, k, v) for k, v in _var.items()}
-                button.create_button(self.widget(tab_number), data)
+                button.create(self.widget(tab_number), data)
 
     def save_tab_data(self):
         ls = []
@@ -245,7 +246,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         meke_save_dir()
         path = self.__get_tab_data_path()
-        not_escape_json_dump(path, ls)
+        lib.not_escape_json_dump(path, ls)
 
     # -----------------------
     # Event
@@ -253,14 +254,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def dropEvent(self, event):
         _mimedata = event.mimeData()
-        #ドロップ位置からタブの高さを考慮する
-        x = event.pos().x()
-        y = event.pos().y() - self.sizeHint().height()
-        if y < 0:
-            y = 0
-        _position = QtCore.QPoint(x, y)
 
         if _mimedata.hasText() is True or _mimedata.hasUrls() is True:
+            # ドロップ位置をボタンの左上にする
+            # ドロップ位置からタブの高さを考慮する
+            x = event.pos().x()
+            y = event.pos().y() - self.sizeHint().height()
+            if y < 0:
+                y = 0
+            _position = QtCore.QPoint(x, y)
+
             data = self._get_button_default_data()
             data.position = _position
 
@@ -289,25 +292,45 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.create_button(data)
             self.save_tab_data()
 
-        elif isinstance(event.source(), button.ButtonWidget):
-            # ドラッグ後のマウスの位置にボタンを配置
+        elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
+            '''
+            # ドラッグ中に移動した相対位置を加算
+            _rect = QtCore.QRect(self.origin, event.pos())
+            self.origin = QtCore.QPoint()
+
+            _x = event.source().pos().x() + _rect.width()
+            _y = event.source().pos().y() + _rect.height()
+            if _x < 0:
+                _x = 0
+            if _y < 0:
+                _y = 0
+            _position = QtCore.QPoint(_x, _y)
             event.source().move(_position)
-            event.source().data.position_x = x
-            event.source().data.position_y = y
+            event.source().data.position_x = _x
+            event.source().data.position_y = _y
+            '''
+            self._parts_move(event.source(), event)
             self.save_tab_data()
+            self.origin = QtCore.QPoint()
 
             # よくわからん
             event.setDropAction(QtCore.Qt.MoveAction)
             event.accept()
 
-        elif isinstance(event.source(), partition.PartitionWidget):
-            # ドラッグ後のマウスの位置にボタンを配置
-            event.source().move(_position)
-            self.save_tab_data()
+    def _parts_move(self, parts, event):
+        # ドラッグ中に移動した相対位置を加算
+        _rect = QtCore.QRect(self.origin, event.pos())
+        _x = parts.pos().x() + _rect.width()
+        _y = parts.pos().y() + _rect.height()
+        if _x < 0:
+            _x = 0
+        if _y < 0:
+            _y = 0
+        _position = QtCore.QPoint(_x, _y)
+        parts.move(_position)
+        parts.data.position_x = _x
+        parts.data.position_y = _y
 
-            # よくわからん
-            event.setDropAction(QtCore.Qt.MoveAction)
-            event.accept()
 
     def dragEnterEvent(self, event):
         '''
@@ -323,8 +346,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             event.ignore()
 
     def mousePressEvent(self, event):
+        self.origin = event.pos()
         if event.button() == QtCore.Qt.LeftButton:
-            self.origin = event.pos()
             self.band = QtCore.QRect()
 
     def mouseMoveEvent(self, event):
@@ -333,17 +356,26 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.update()
 
     def mouseReleaseEvent(self, event):
-        if event.button() != QtCore.Qt.LeftButton:
-            return
 
-        if not self.origin:
-            self.origin = event.pos()
-        rect = QtCore.QRect(self.origin, event.pos()).normalized()
-        self._get_button_in_rectangle(rect)
-        self._set_stylesheet()
-        self.origin = QtCore.QPoint()
-        self.band = None
-        self.update()
+        if event.button() == QtCore.Qt.LeftButton:
+            if not self.origin:
+                self.origin = event.pos()
+            rect = QtCore.QRect(self.origin, event.pos()).normalized()
+            self._get_parts_in_rectangle(rect)
+            self._set_stylesheet()
+            self.origin = QtCore.QPoint()
+            self.band = None
+            self.update()
+
+        # 選択中のパーツを移動
+        if event.button() == QtCore.Qt.MiddleButton:
+            if len(self.selected) > 0:
+                for p in self.selected:
+                    self._parts_move(p, event)
+                self.origin = QtCore.QPoint()
+                self.save_tab_data()
+
+
 
     def paintEvent(self, event):
         if self.band is not None:
@@ -368,18 +400,21 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # -----------------------
     # Others
     # -----------------------
-    def _get_button_in_rectangle(self, rect):
+    def _get_parts_in_rectangle(self, rect):
         self.selected = []
-        for child in self.findChildren(button.ButtonWidget):
-            # アクティブなタブ以外の物は選択対象外
-            if child.parent != self.currentWidget():
-                continue
+        chidren = []
+        chidren.extend(self.currentWidget().findChildren(button.ButtonWidget))
+        chidren.extend(self.currentWidget().findChildren(partition.PartitionWidget))
+
+        for child in chidren:
             # 矩形内に位置しているかを判定
-            if rect.intersects(self._get_button_absolute_geometry(child)) is False:
+            if rect.intersects(self._get_parts_absolute_geometry(child)) is False:
                 continue
             self.selected.append(child)
 
-    def _get_button_absolute_geometry(self, button):
+        print len(self.selected)
+
+    def _get_parts_absolute_geometry(self, button):
         '''
         type:ShelfButton.ButtonWidget -> QtCore.QSize
         '''
@@ -393,34 +428,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         css = 'QToolButton:hover{background:#707070;}'
         # 選択中のボタンを誇張
         for s in self.selected:
-            css += '#' + s.objectName() + '{border-color:#aaaaaa; border-style:solid; border-width:1px;}'
+            css += '#' + s.objectName() + '{border-color:red; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
 
     def _get_button_default_data(self):
         path = get_button_default_filepath()
         data = button.ButtonData()
-        js = not_escape_json_load(path)
+        js = lib.not_escape_json_load(path)
         if js is not None:
             {setattr(data, k, v) for k, v in js.items()}
         return data
-
-# #################################################################################################
-
-
-# http://qiita.com/tadokoro/items/131268c9a0fd1cf85bf4
-# 日本語をエスケープさせずにjsonを読み書きする
-def not_escape_json_dump(path, data):
-    text = json.dumps(data, sort_keys=True, ensure_ascii=False, indent=2)
-    with open(path, 'w') as fh:
-        fh.write(text.encode('utf-8'))
-
-
-def not_escape_json_load(path):
-    if os.path.isfile(path) is False:
-        return None
-    with open(path) as fh:
-        data = json.loads(fh.read(), "utf-8")
-    return data
 
 
 # #################################################################################################
