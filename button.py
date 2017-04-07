@@ -1,10 +1,8 @@
 ## -*- coding: utf-8 -*-
 from vendor.Qt import QtCore, QtGui, QtWidgets
-import random
-import string
 import maya.cmds as cmds
 import os
-
+import lib
 
 class ButtonWidget(QtWidgets.QToolButton):
 
@@ -18,15 +16,11 @@ class ButtonWidget(QtWidgets.QToolButton):
         # 中クリックだけドラッグ＆ドロップ可能にする
         if event.buttons() != QtCore.Qt.MidButton:
             return
-
         # ドラッグ＆ドロップされるデータ形式を代入
         mimedata = QtCore.QMimeData()
-
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimedata)
-        # ドロップした位置にボタンの左上をセット
-        drag.setHotSpot(event.pos() - self.rect().topLeft())
-        drop_action = drag.exec_(QtCore.Qt.MoveAction)
+        drag.exec_(QtCore.Qt.MoveAction)
 
     def mousePressEvent(self, event):
         # ボタンが押されたときのボタンの色の変化
@@ -45,22 +39,18 @@ class ButtonWidget(QtWidgets.QToolButton):
             script_execute(code, source_type)
 
 
-class ButtonData(object):
+class ButtonData(lib.PartsData):
     def __init__(self, label='newButton', code='', path=''):
+        super(ButtonData, self).__init__()
         self.label = label
-        self.label_font_size = 10
+
         self.tooltip = ''
         self.bool_tooltip = True
         self.code = code
         self.script_language = 'Python'
-        self.position_x = 0
-        self.position_y = 0
-        self.fix_size_flag = False
-        self.btn_size_x = 100
-        self.btn_size_y = 50
+        self.size_flag = False
         self.icon_file = ':/polySphere.png'
 
-        self.use_label = True
         self.use_icon = False
         self.icon_style = 0
 
@@ -76,15 +66,6 @@ class ButtonData(object):
             self.use_externalfile = False
         self.externalfile = path
 
-    position = property(doc='position property')
-    @position.getter
-    def position(self):
-        return QtCore.QPoint(self.position_x, self.position_y)
-    @position.setter
-    def position(self, data):
-        self.position_x = data.x()
-        self.position_y = data.y()
-
     icon = property(doc='icon property')
     @icon.getter
     def icon(self):
@@ -94,13 +75,6 @@ class ButtonData(object):
         pixmap = QtGui.QPixmap.fromImage(image)
         pixmap.scaled(150, 150, QtCore.Qt.KeepAspectRatio, QtCore.Qt.FastTransformation)
         return QtGui.QIcon(pixmap)
-
-    fix_size = property(doc='fix_size property')
-    @fix_size.getter
-    def fix_size(self):
-        if self.fix_size_flag is False:
-            return None
-        return QtCore.QSize(self.btn_size_x, self.btn_size_y)
 
     icon_size = property(doc='icon_size property')
     @icon_size.getter
@@ -128,40 +102,35 @@ class ButtonData(object):
             return QtCore.Qt.ToolButtonTextOnly
 
 
-def random_string(length, seq=string.digits + string.ascii_lowercase):
-    sr = random.SystemRandom()
-    return ''.join([sr.choice(seq) for i in xrange(length)])
-
-
-def create_button(parent, data, preview=False):
-    btn = ButtonWidget(parent, data, preview)
-    btn.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-    btn.setObjectName(random_string(15))
-    btn.setIcon(data.icon)
-    btn.setIconSize(data.icon_size)
-    if data.fix_size is not None:
-        btn.setFixedSize(data.fix_size)
-    btn.setText(data.label)
-    font = btn.font()
+def create(parent, data, preview=False):
+    widget = ButtonWidget(parent, data, preview)
+    widget.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+    widget.setObjectName(lib.random_string(15))
+    widget.setIcon(data.icon)
+    widget.setIconSize(data.icon_size)
+    if data.size is not None:
+        widget.setFixedSize(data.size)
+    widget.setText(data.label)
+    font = widget.font()
     font.setPointSize(data.label_font_size)
-    btn.setFont(font)
-    btn.setToolButtonStyle(data.style)
+    widget.setFont(font)
+    widget.setToolButtonStyle(data.style)
     if data.bool_tooltip is True:
         if data.use_externalfile is True:
-            btn.setToolTip(data.externalfile)
+            widget.setToolTip(data.externalfile)
         else:
-            btn.setToolTip(data.code)
+            widget.setToolTip(data.code)
     else:
-        btn.setToolTip(data.tooltip)
+        widget.setToolTip(data.tooltip)
 
     if data.use_bgcolor is True:
         palette = QtGui.QPalette()
         palette.setColor(QtGui.QPalette.Window, QtGui.QColor(data.bgcolor))
-        btn.setPalette(palette)
+        widget.setPalette(palette)
 
-    btn.show()
-    btn.move(data.position)
-    return btn
+    widget.show()
+    widget.move(data.position)
+    return widget
 
 
 def readfile(path):
