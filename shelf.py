@@ -49,7 +49,23 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.currentChanged.connect(self._current_tab_change)
         self.tabBar().tabMoved.connect(self._tab_moved)
 
-        partition.create(self.currentWidget(), partition.PartitionData())
+        # テスト用仕切り線
+        data = partition.PartitionData()
+        data.label = 'label test'
+        data.label_font_size = 10
+        data.use_label = True
+        data.position_x = 10
+        data.position_y = 10
+        partition.create(self.currentWidget(), data)
+
+        data = partition.PartitionData()
+        data.type = 0
+        data.label = 'hogehoge label'
+        data.label_font_size = 13
+        data.use_label = True
+        data.position_x = 100
+        data.position_y = 100
+        partition.create(self.currentWidget(), data)
 
     def _current_tab_change(self):
         self.selected = []
@@ -293,44 +309,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.save_tab_data()
 
         elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
-            '''
-            # ドラッグ中に移動した相対位置を加算
-            _rect = QtCore.QRect(self.origin, event.pos())
-            self.origin = QtCore.QPoint()
 
-            _x = event.source().pos().x() + _rect.width()
-            _y = event.source().pos().y() + _rect.height()
-            if _x < 0:
-                _x = 0
-            if _y < 0:
-                _y = 0
-            _position = QtCore.QPoint(_x, _y)
-            event.source().move(_position)
-            event.source().data.position_x = _x
-            event.source().data.position_y = _y
-            '''
-            self._parts_move(event.source(), event)
-            self.save_tab_data()
-            self.origin = QtCore.QPoint()
+            if len(self.selected) > 0:
+                # 複数選択されていたらまとめて移動を優先
+                self._selected_parts_move(event.pos())
+            else:
+                self._parts_move(event.source(), event.pos())
+                self.save_tab_data()
+                self.origin = QtCore.QPoint()
 
             # よくわからん
             event.setDropAction(QtCore.Qt.MoveAction)
             event.accept()
-
-    def _parts_move(self, parts, event):
-        # ドラッグ中に移動した相対位置を加算
-        _rect = QtCore.QRect(self.origin, event.pos())
-        _x = parts.pos().x() + _rect.width()
-        _y = parts.pos().y() + _rect.height()
-        if _x < 0:
-            _x = 0
-        if _y < 0:
-            _y = 0
-        _position = QtCore.QPoint(_x, _y)
-        parts.move(_position)
-        parts.data.position_x = _x
-        parts.data.position_y = _y
-
 
     def dragEnterEvent(self, event):
         '''
@@ -369,13 +359,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         # 選択中のパーツを移動
         if event.button() == QtCore.Qt.MiddleButton:
-            if len(self.selected) > 0:
-                for p in self.selected:
-                    self._parts_move(p, event)
-                self.origin = QtCore.QPoint()
-                self.save_tab_data()
-
-
+            self._selected_parts_move(event.pos())
 
     def paintEvent(self, event):
         if self.band is not None:
@@ -400,6 +384,29 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # -----------------------
     # Others
     # -----------------------
+    def _selected_parts_move(self, after_pos):
+    # 選択中のパーツを移動
+        if len(self.selected) > 0:
+            for p in self.selected:
+                self._parts_move(p, after_pos)
+            self.origin = QtCore.QPoint()
+            self.save_tab_data()
+
+    def _parts_move(self, parts, after_pos):
+        # ドラッグ中に移動した相対位置を加算
+        _rect = QtCore.QRect(self.origin, after_pos)
+        _x = parts.pos().x() + _rect.width()
+        _y = parts.pos().y() + _rect.height()
+        if _x < 0:
+            _x = 0
+        if _y < 0:
+            _y = 0
+        _position = QtCore.QPoint(_x, _y)
+        parts.move(_position)
+        parts.data.position_x = _x
+        parts.data.position_y = _y
+
+
     def _get_parts_in_rectangle(self, rect):
         self.selected = []
         chidren = []
