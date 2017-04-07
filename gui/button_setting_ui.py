@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'C:\Users\owner\Documents\Github\SiShelf\gui\button_setting.ui'
 #
-# Created: Sun Apr 02 01:53:33 2017
+# Created: Fri Apr 07 14:12:19 2017
 #      by: pyside-uic 0.2.14 running on PySide 1.2.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -124,19 +124,19 @@ class Ui_Form(object):
         self.checkbox_fix_size = QtGui.QCheckBox(self.groupBox_2)
         self.checkbox_fix_size.setObjectName("checkbox_fix_size")
         self.horizontalLayout_2.addWidget(self.checkbox_fix_size)
-        self.spinbox_btn_size_x = QtGui.QSpinBox(self.groupBox_2)
-        self.spinbox_btn_size_x.setMinimumSize(QtCore.QSize(70, 0))
-        self.spinbox_btn_size_x.setMaximum(9999)
-        self.spinbox_btn_size_x.setObjectName("spinbox_btn_size_x")
-        self.horizontalLayout_2.addWidget(self.spinbox_btn_size_x)
+        self.spinbox_width = QtGui.QSpinBox(self.groupBox_2)
+        self.spinbox_width.setMinimumSize(QtCore.QSize(70, 0))
+        self.spinbox_width.setMaximum(9999)
+        self.spinbox_width.setObjectName("spinbox_width")
+        self.horizontalLayout_2.addWidget(self.spinbox_width)
         self.label_3 = QtGui.QLabel(self.groupBox_2)
         self.label_3.setObjectName("label_3")
         self.horizontalLayout_2.addWidget(self.label_3)
-        self.spinbox_btn_size_y = QtGui.QSpinBox(self.groupBox_2)
-        self.spinbox_btn_size_y.setMinimumSize(QtCore.QSize(70, 0))
-        self.spinbox_btn_size_y.setMaximum(9999)
-        self.spinbox_btn_size_y.setObjectName("spinbox_btn_size_y")
-        self.horizontalLayout_2.addWidget(self.spinbox_btn_size_y)
+        self.spinbox_height = QtGui.QSpinBox(self.groupBox_2)
+        self.spinbox_height.setMinimumSize(QtCore.QSize(70, 0))
+        self.spinbox_height.setMaximum(9999)
+        self.spinbox_height.setObjectName("spinbox_height")
+        self.horizontalLayout_2.addWidget(self.spinbox_height)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_3.setContentsMargins(-1, 0, -1, -1)

@@ -272,7 +272,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="spinbox_btn_size_x">
+                 <widget class="QSpinBox" name="spinbox_width">
                   <property name="minimumSize">
                    <size>
                     <width>70</width>
@@ -292,7 +292,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="spinbox_btn_size_y">
+                 <widget class="QSpinBox" name="spinbox_height">
                   <property name="minimumSize">
                    <size>
                     <width>70</width>
