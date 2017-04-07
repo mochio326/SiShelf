@@ -103,8 +103,8 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         self.checkbox_tooltip.stateChanged.connect(func)
         self.line_icon_file.textChanged.connect(func)
         self.checkbox_fix_size.stateChanged.connect(func)
-        self.spinbox_btn_size_x.valueChanged.connect(func)
-        self.spinbox_btn_size_y.valueChanged.connect(func)
+        self.spinbox_width.valueChanged.connect(func)
+        self.spinbox_height.valueChanged.connect(func)
         self.checkbox_use_label.stateChanged.connect(func)
         self.checkbox_use_icon.stateChanged.connect(func)
         self.combo_icon_style.currentIndexChanged.connect(func)
@@ -157,9 +157,9 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         self.spinbox_btn_position_x.setValue(data.position_x)
         self.spinbox_btn_position_y.setValue(data.position_y)
 
-        self.checkbox_fix_size.setChecked(data.fix_size_flag)
-        self.spinbox_btn_size_x.setValue(data.btn_size_x)
-        self.spinbox_btn_size_y.setValue(data.btn_size_y)
+        self.checkbox_fix_size.setChecked(data.size_flag)
+        self.spinbox_width.setValue(data.width)
+        self.spinbox_height.setValue(data.height)
 
         self.checkbox_use_label.setChecked(data.use_label)
         self.checkbox_use_icon.setChecked(data.use_icon)
@@ -229,9 +229,9 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         data.position_x = self.spinbox_btn_position_x.value()
         data.position_y = self.spinbox_btn_position_y.value()
 
-        data.fix_size_flag = self.checkbox_fix_size.isChecked()
-        data.btn_size_x = self.spinbox_btn_size_x.value()
-        data.btn_size_y = self.spinbox_btn_size_y.value()
+        data.size_flag = self.checkbox_fix_size.isChecked()
+        data.width = self.spinbox_width.value()
+        data.height = self.spinbox_height.value()
 
         data.use_label = self.checkbox_use_label.isChecked()
         data.use_icon = self.checkbox_use_icon.isChecked()
