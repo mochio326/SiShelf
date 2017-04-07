@@ -90,10 +90,6 @@ class PartitionData(lib.PartsData):
         self.line_length = 150
         self.margin = 2
 
-        #test
-        self.label = 'label test'
-        self.label_font_size = 10
-        self.use_label = True
 
 
 def create(parent, data):
