@@ -42,7 +42,7 @@ class PartitionWidget(QtWidgets.QWidget):
 
         # ウィジェットの大きさを計算　上下左右マージンも考慮
         _w = self.data.line_length
-        _h = self.data.margin + self.data.line_width
+        _h = self.data.margin + int(self.data.line_width * 1.5)
         if self.data.use_label is True:
             fm = painter.fontMetrics()
             if _w < fm.width(self.data.label):
@@ -52,50 +52,56 @@ class PartitionWidget(QtWidgets.QWidget):
         _w += self.data.margin * 2
         _h += self.data.margin * 2
 
-        if self.data.type == 0:
+        # ラインの配置ポイントを算出
+        _line_start_point = self.data.margin
+        _line_end_point = self.data.line_length + self.data.margin
+
+
+        if self.data.style == 0:
             # 水平
             self.resize(_w, _h)
+            if self.data.use_label is True:
+                _line_height_point = self.data.label_font_size + round(self.data.margin + self.data.line_width / 2)
+            else:
+                _line_height_point = self.data.margin + round(self.data.line_width / 2)
+
             line = QtCore.QLine(
-                QtCore.QPoint(0, self.data.label_font_size + self.data.margin),
-                QtCore.QPoint(self.data.line_length, self.data.label_font_size + self.data.margin)
+                QtCore.QPoint(_line_start_point, _line_height_point),
+                QtCore.QPoint(_line_end_point, _line_height_point)
             )
             painter.drawLine(line)
+
             if self.data.use_label is True:
                 painter.drawText(QtCore.QPoint(0,  self.data.label_font_size), self.data.label)
 
-        elif self.data.type == 1:
+        elif self.data.style == 1:
             # 垂直
             self.resize(_h, _w)
             line = QtCore.QLine(
-                QtCore.QPoint(self.data.margin, self.data.margin),
-                QtCore.QPoint(self.data.margin, self.data.line_length + self.data.margin)
+                QtCore.QPoint(self.data.margin, _line_start_point),
+                QtCore.QPoint(self.data.margin, _line_end_point)
             )
             painter.drawLine(line)
             if self.data.use_label is True:
                 painter.rotate(90)
-                painter.drawText(QtCore.QPoint(self.data.margin, -self.data.margin*2), self.data.label)
-
-
-
-
+                _p = QtCore.QPoint(self.data.margin, -self.data.margin * 2 - round(self.data.line_width / 2))
+                painter.drawText(_p, self.data.label)
 
 
 class PartitionData(lib.PartsData):
     def __init__(self):
         super(PartitionData, self).__init__()
-
         self.color = '#aaaaaa'
-        self.type = 1  # 0:水平 1:垂直
+        self.style = 0  # 0:水平 1:垂直
         self.line_width = 1
         self.line_length = 150
         self.margin = 2
 
 
-
 def create(parent, data):
     widget = PartitionWidget(parent, data)
     widget.setObjectName(lib.random_string(15))
-    #widget.show()
+    widget.show()
     widget.move(data.position)
     return widget
 
