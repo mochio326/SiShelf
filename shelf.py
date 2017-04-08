@@ -4,10 +4,12 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import button_setting
 import button
 import partition
+import partition_setting
 import lib
 reload(button)
 reload(button_setting)
 reload(partition)
+reload(partition_setting)
 reload(lib)
 import json
 import os
@@ -49,24 +51,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.currentChanged.connect(self._current_tab_change)
         self.tabBar().tabMoved.connect(self._tab_moved)
 
-        # テスト用仕切り線
-        data = partition.PartitionData()
-        data.label = 'label test'
-        data.label_font_size = 10
-        data.use_label = True
-        data.position_x = 10
-        data.position_y = 10
-        partition.create(self.currentWidget(), data)
-
-        data = partition.PartitionData()
-        data.type = 0
-        data.label = 'hogehoge label'
-        data.label_font_size = 13
-        data.use_label = True
-        data.position_x = 100
-        data.position_y = 100
-        partition.create(self.currentWidget(), data)
-
     def _current_tab_change(self):
         self.selected = []
         self._set_stylesheet()
@@ -89,8 +73,11 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _menu.addAction('Add button', self._add_button)
         _menu.addAction('Button default setting', self._button_default_setting)
         _menu.addSeparator()
-        _menu.addAction('Edit', self._edit_selected_button)
-        _menu.addAction('Delete', self._delete_selected_button)
+        _menu.addAction('Add partition', self._add_partition)
+        _menu.addAction('Partition default setting', self._partition_default_setting)
+        _menu.addSeparator()
+        _menu.addAction('Edit', self._edit)
+        _menu.addAction('Delete', self._delete)
         _menu.addAction('Copy', self._copy)
         _menu.addAction('Paste', self._paste)
         _menu.addAction('Cut', self._cut)
@@ -101,7 +88,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         pos = QtCore.QPoint(curor.x() - _ui['x'], curor.y() - _ui['y'])
         # タブバーの高さを考慮
         self.context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
-        # ボタンが矩形で選択されていなければマウス位置の下のボタンを選択しておく
+        # パーツが矩形で選択されていなければマウス位置の下のボタンを選択しておく
         if len(self.selected) == 0:
             rect = QtCore.QRect(pos, self.context_pos)
             self._get_parts_in_rectangle(rect)
@@ -140,6 +127,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return None
         meke_save_dir()
         path = get_button_default_filepath()
+        lib.not_escape_json_dump(path, vars(data))
+
+    def _partition_default_setting(self):
+        data = self._get_partition_default_data()
+        data, _result = partition_setting.SettingDialog.get_data(self, data)
+        if _result is not True:
+            print("Cancel.")
+            return None
+        meke_save_dir()
+        path = get_partition_default_filepath()
         lib.not_escape_json_dump(path, vars(data))
 
     def _delete_tab(self):
@@ -182,13 +179,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.setCurrentIndex(self.count() + 1)
         self.save_tab_data()
 
-    def _delete_selected_button(self):
+    def _delete(self):
         for s in self.selected:
             self.delete_parts(s)
         self.selected = []
         self.save_tab_data()
 
-    def _edit_selected_button(self):
+    def _edit(self):
         if len(self.selected) != 1:
             print('Only standalone selection is supported.')
             return
@@ -205,19 +202,31 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.create_button(data)
         self.save_tab_data()
 
+    def _add_partition(self):
+        data = self._get_partition_default_data()
+        data.position = self.context_pos
+        self.create_partition(data)
+        self.save_tab_data()
+
     def delete_parts(self, widget):
         widget.setParent(None)
         widget.deleteLater()
 
     def create_button(self, data):
-        data, _result = button_setting.SettingDialog.get_data(self, data)
+        return self._create_parts(button_setting, button, data)
+
+    def create_partition(self, data):
+        return self._create_parts(partition_setting, partition, data)
+
+    def _create_parts(self, ui_obj, data_obj, data):
+        data, _result = ui_obj.SettingDialog.get_data(self, data)
         if _result is not True:
             print("Cancel.")
             return None
-        btn = button.create(self.currentWidget(), data)
+        parts = data_obj.create(self.currentWidget(), data)
         self.selected = []
         self.repaint()
-        return btn
+        return parts
 
     # -----------------------
     # Save Load
@@ -406,7 +415,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         parts.data.position_x = _x
         parts.data.position_y = _y
 
-
     def _get_parts_in_rectangle(self, rect):
         self.selected = []
         chidren = []
@@ -418,8 +426,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             if rect.intersects(self._get_parts_absolute_geometry(child)) is False:
                 continue
             self.selected.append(child)
-
-        print len(self.selected)
 
     def _get_parts_absolute_geometry(self, button):
         '''
@@ -446,6 +452,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             {setattr(data, k, v) for k, v in js.items()}
         return data
 
+    def _get_partition_default_data(self):
+        path = get_partition_default_filepath()
+        data = partition.PartitionData()
+        js = lib.not_escape_json_load(path)
+        if js is not None:
+            {setattr(data, k, v) for k, v in js.items()}
+        return data
 
 # #################################################################################################
 
@@ -470,6 +483,9 @@ def get_show_repr():
     _ui = get_ui()
     if _ui is None:
         return dict_
+    if _ui.isVisible() is False:
+        return dict_
+    
 
     dict_['display'] = True
     dict_['dockable'] = _ui.isDockable()
@@ -499,6 +515,10 @@ def get_shelf_docking_filepath():
 
 def get_button_default_filepath():
     return os.path.join(get_save_dir(), 'button_default.json')
+
+
+def get_partition_default_filepath():
+    return os.path.join(get_save_dir(), 'partition_default.json')
 
 
 def get_shelf_floating_filepath():
