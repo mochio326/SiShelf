@@ -8,7 +8,7 @@ import json
 class PartsData(object):
     def __init__(self):
         self.use_label = True
-        self.label = ''
+        self.label = 'label'
         self.label_font_size = 10
         self.position_x = 0
         self.position_y = 0
