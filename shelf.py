@@ -472,9 +472,26 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _set_stylesheet(self):
         css = 'QToolButton:hover{background:#707070;}'
-        # 選択中のボタンを誇張
+
+        # Maya2016からはボタンのsetColorでは背景色が変わらなくなっていたのでスタイルシートに全て設定
+        _buttons = self.currentWidget().findChildren(button.ButtonWidget)
+        for _b in _buttons:
+            css += '#' + _b.objectName() + '{'
+            if _b.data.use_bgcolor is True:
+                css += 'background:' + _b.data.bgcolor + ';'
+            css += 'border-color:#606060; border-style:solid; border-width:1px;}'
+
+            css += ':hover#' + _b.objectName() + '{background:#707070;}'
+            # 押した感を出す
+            css += ':pressed#' + _b.objectName() + '{padding:1px -1px -1px 1px;}'
+
+        # 選択中のパーツを誇張
         for s in self.selected:
-            css += '#' + s.objectName() + '{border-color:red; border-style:solid; border-width:1px;}'
+            css += '#' + s.objectName() + '{'
+            if isinstance(s.data, button.ButtonData):
+                if s.data.use_bgcolor is True:
+                    css += 'background:' + s.data.bgcolor + ';'
+            css += 'border-color:red; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
 
     def _get_button_default_data(self):
