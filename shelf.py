@@ -71,31 +71,35 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _menu.addAction('Delete Tab', self._delete_tab)
         _menu.addSeparator()
         _menu.addAction('Add button', self._add_button)
-        _menu.addAction('Button default setting', self._button_default_setting)
-        _menu.addSeparator()
         _menu.addAction('Add partition', self._add_partition)
-        _menu.addAction('Partition default setting', self._partition_default_setting)
         _menu.addSeparator()
         _menu.addAction('Edit', self._edit)
         _menu.addAction('Delete', self._delete)
         _menu.addAction('Copy', self._copy)
         _menu.addAction('Paste', self._paste)
         _menu.addAction('Cut', self._cut)
+        _menu.addSeparator()
+        _df = _menu.addMenu('Default setting')
+        _df.addAction('Button', self._button_default_setting)
+        _df.addAction('Partition', self._partition_default_setting)
 
-        curor = QtGui.QCursor.pos()
+        cursor = QtGui.QCursor.pos()
 
         _ui = get_show_repr()
-        pos = QtCore.QPoint(curor.x() - _ui['x'], curor.y() - _ui['y'])
-        # タブバーの高さを考慮
+        pos = QtCore.QPoint(cursor.x() - _ui['x'], cursor.y() - _ui['y'])
+        # タブバーの高さを考慮 （ただ実際のタブの大きさと数ピクセルずれてる気がする
         self.context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
         # パーツが矩形で選択されていなければマウス位置の下のボタンを選択しておく
         if len(self.selected) == 0:
-            rect = QtCore.QRect(pos, self.context_pos)
+            rect = QtCore.QRect(pos, pos)
+            # ドッキングしてる状態だとタブの高さを考慮したほうがいい！？なんじゃこの挙動は…
+            if self.isFloating() is False and self.dockArea() is not None:
+                rect = QtCore.QRect(self.context_pos, self.context_pos)
             self._get_parts_in_rectangle(rect)
             self._set_stylesheet()
             self.update()
         # マウス位置に出現
-        _menu.exec_(curor)
+        _menu.exec_(cursor)
 
     def _copy(self):
         self.clipboard = copy.deepcopy(self.selected[0].data)
@@ -105,7 +109,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
         data = copy.deepcopy(self.clipboard)
         data.position = self.context_pos
-        btn = button.create(self.currentWidget(), data)
+
+        if isinstance(data, button.ButtonData):
+            button.create(self.currentWidget(), data)
+        elif isinstance(data, partition.PartitionData):
+            partition.create(self.currentWidget(), data)
+
         self.selected = []
         self.repaint()
         self.save_tab_data()
@@ -140,6 +149,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         lib.not_escape_json_dump(path, vars(data))
 
     def _delete_tab(self):
+        if self.count() == 1:
+            return
         _status = QtWidgets.QMessageBox.question(
             self, 'Confirmation',
             'Are you sure you want to delete the tab?',
@@ -189,11 +200,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if len(self.selected) != 1:
             print('Only standalone selection is supported.')
             return
-        btn = self.selected[0]
-        _re = self.create_button(btn.data)
+        parts = self.selected[0]
+
+        print parts
+
+        if isinstance(parts.data, button.ButtonData):
+            _re = self.create_button(parts.data)
+        elif isinstance(parts.data, partition.PartitionData):
+            _re = self.create_partition(parts.data)
+
         if _re is None:
             return
-        self.delete_parts(btn)
+        self.delete_parts(parts)
         self.save_tab_data()
 
     def _add_button(self):
@@ -248,11 +266,20 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.insertTab(tab_number, QtWidgets.QWidget(), _vars['name'])
             if _vars['current'] is True:
                 self.setCurrentIndex(tab_number)
-            for _var in _vars['button']:
-                # 辞書からインスタンスのプロパティに代入
-                data = button.ButtonData()
-                {setattr(data, k, v) for k, v in _var.items()}
-                button.create(self.widget(tab_number), data)
+
+            if _vars.get('button') is not None:
+                for _var in _vars['button']:
+                    # 辞書からインスタンスのプロパティに代入
+                    data = button.ButtonData()
+                    {setattr(data, k, v) for k, v in _var.items()}
+                    button.create(self.widget(tab_number), data)
+
+            if _vars.get('partition') is not None:
+                for _var in _vars['partition']:
+                    # 辞書からインスタンスのプロパティに代入
+                    data = partition.PartitionData()
+                    {setattr(data, k, v) for k, v in _var.items()}
+                    partition.create(self.widget(tab_number), data)
 
     def save_tab_data(self):
         ls = []
@@ -260,13 +287,22 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         for i in range(self.count()):
             _tab_data = {}
             _tab_data['name'] = self.tabText(i)
+
             # カレントタブ
             _tab_data['current'] = (i == current)
+
             # ボタンのデータ
             _b = []
             for child in self.widget(i).findChildren(button.ButtonWidget):
                 _b.append(vars(child.data))
             _tab_data['button'] = _b
+
+            # 仕切り線のデータ
+            _p = []
+            for child in self.widget(i).findChildren(partition.PartitionWidget):
+                _p.append(vars(child.data))
+            _tab_data['partition'] = _p
+
             ls.append(_tab_data)
 
         meke_save_dir()
@@ -469,7 +505,12 @@ def get_ui():
     return None
 
 
-def get_show_repr():
+def get_show_repr(vis_judgment=True):
+    '''
+
+    :param vis_judgment:表示状態を考慮するか
+    :return:
+    '''
     dict_ = {}
     dict_['display'] = False
     dict_['dockable'] = True
@@ -483,7 +524,7 @@ def get_show_repr():
     _ui = get_ui()
     if _ui is None:
         return dict_
-    if _ui.isVisible() is False:
+    if vis_judgment is True and _ui.isVisible() is False:
         return dict_
     
 
