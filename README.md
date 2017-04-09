@@ -54,7 +54,7 @@ SiShelfはMayaのウインドウにドッキングすることができます。
 
 ### 仕切り線
 
-タブ内での整理に仕切り線を追加できます。
+タブ内の整理用に仕切り線を追加できます。
 縦横やラベルの有無、色などが自由に設定できます。
 
 ![SiShelf](/images/05.gif)
@@ -97,17 +97,15 @@ SiShelfはMayaのウインドウにドッキングすることができます。
 　→ コピーしたパーツをクリックした位置に貼り付けます。
 + Cut  
 　→ 選択しているパーツを切り取ります。（複数選択には対応していません。）
-+ Tab
-++ Add  
++ Tab > Add 
 　→ タブを追加します。
-++ Rename
++ Tab > Rename
 　→ 現在のタブの名前を変更します。
-++ Delete  
++ Tab > Delete  
 　→ 現在のタブを削除します。タブを削除するとタブに配置していたパーツ情報もすべて削除されます。
-+ Default setting
-++ Button  
++ Default setting > Button  
 　→ ボタンを作る際の初期設定を行います。
-++ Partition
++ Default setting > Partition
 　→ 仕切り線を作る際の初期設定を行います。
 
 ### データの保存
@@ -122,12 +120,16 @@ jsonファイルはテキストファイルなので、やろうと思えば内�
 
 ## 動作確認
 
-動作確認はMAYA2015でのみ行っています。
+動作確認はMAYA2015でのみ行っています。  
+[Qt.py](https://github.com/mottosso/Qt.py)を利用することでPySide2への行っているつもりなので、多分2016以降でも使えます。
+
+
 
 ## 改訂履歴
 
+2017/4/9 バージョン1.0公開
 
 
-## Licence
+## ライセンス
 
-[SiShelf](LICENCE)
+[MIT](https://github.com/mochio326/SiShelf/blob/master/LICENSE)
