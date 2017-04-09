@@ -122,7 +122,7 @@ jsonファイルはテキストファイルなので、やろうと思えば内�
 ## 動作確認
 
 動作確認はMAYA2015でのみ行っています。  
-[Qt.py](https://github.com/mottosso/Qt.py)を利用することでPySide2への行っているつもりなので、多分2016以降でも使えます。
+[Qt.py](https://github.com/mottosso/Qt.py)を利用することでPySide2への行っているつもりなので、多分2017以降でも使えます。
 
 
 
