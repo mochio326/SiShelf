@@ -97,15 +97,15 @@ SiShelfはMayaのウインドウにドッキングすることができます。
 　→ コピーしたパーツをクリックした位置に貼り付けます。
 + Cut  
 　→ 選択しているパーツを切り取ります。（複数選択には対応していません。）
-+ Tab > Add 
++ Tab > Add  
 　→ タブを追加します。
-+ Tab > Rename
++ Tab > Rename  
 　→ 現在のタブの名前を変更します。
 + Tab > Delete  
 　→ 現在のタブを削除します。タブを削除するとタブに配置していたパーツ情報もすべて削除されます。
 + Default setting > Button  
 　→ ボタンを作る際の初期設定を行います。
-+ Default setting > Partition
++ Default setting > Partition  
 　→ 仕切り線を作る際の初期設定を行います。
 
 ### データの保存
