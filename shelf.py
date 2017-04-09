@@ -6,11 +6,6 @@ import button
 import partition
 import partition_setting
 import lib
-reload(button)
-reload(button_setting)
-reload(partition)
-reload(partition_setting)
-reload(lib)
 import json
 import os
 import pymel.core as pm

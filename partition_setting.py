@@ -1,9 +1,7 @@
 ## -*- coding: utf-8 -*-
 from vendor.Qt import QtCore, QtGui, QtWidgets
 import gui.partition_setting_ui
-reload(gui.partition_setting_ui)
 import partition
-import os
 
 
 class SettingDialog(QtWidgets.QDialog, gui.partition_setting_ui.Ui_Form):
