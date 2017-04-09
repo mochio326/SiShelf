@@ -12,6 +12,7 @@ Softimageのシェルフをリスペクトして作成されたMaya用のシェ�
 + SiShelf/_userSetup.py の内容を C:\Users\ユーザー名\Documents\maya\バージョン\ja_JP\scripts\userSetup.py 等の中に追記  
   ※userSetup.pyが無ければ_userSetup.pyをリネームして配置  
   ※上記パスは環境により異なる場合があります。  
+  ※Gifhubからzipをダウンロードした場合はフォルダ名がSiShelf-masterとなっています。この場合はSiShelfにリネームしてください。
 
 ## 実行
 
