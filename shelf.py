@@ -66,10 +66,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def _context_menu(self, event):
         _menu = QtWidgets.QMenu()
         # 項目名と実行する関数の設定
-        _menu.addAction('Add Tab', self._add_tab)
-        _menu.addAction('Rename Tab', self._rename_tab)
-        _menu.addAction('Delete Tab', self._delete_tab)
-        _menu.addSeparator()
         _menu.addAction('Add button', self._add_button)
         _menu.addAction('Add partition', self._add_partition)
         _menu.addSeparator()
@@ -79,6 +75,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _menu.addAction('Paste', self._paste)
         _menu.addAction('Cut', self._cut)
         _menu.addSeparator()
+
+        _tb = _menu.addMenu('Tab')
+        _tb.addAction('Add', self._add_tab)
+        _tb.addAction('Rename', self._rename_tab)
+        _tb.addAction('Delete', self._delete_tab)
+
         _df = _menu.addMenu('Default setting')
         _df.addAction('Button', self._button_default_setting)
         _df.addAction('Partition', self._partition_default_setting)
