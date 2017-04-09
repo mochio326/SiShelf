@@ -416,7 +416,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def closeEvent(self, event):
         if self._floating_save is False:
             if self.isFloating() is True:
-                dict_ = get_show_repr()
+                dict_ = get_show_repr(False)
                 meke_save_dir()
                 f = open(get_shelf_floating_filepath(), 'w')
                 json.dump(dict_, f)
