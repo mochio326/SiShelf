@@ -1,5 +1,5 @@
 ## -*- coding: utf-8 -*-
-from vendor.Qt import QtCore, QtGui, QtWidgets
+from Qt import QtCore, QtGui, QtWidgets
 import gui.partition_setting_ui
 import partition
 

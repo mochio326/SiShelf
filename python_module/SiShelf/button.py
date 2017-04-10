@@ -1,5 +1,5 @@
 ## -*- coding: utf-8 -*-
-from vendor.Qt import QtCore, QtGui, QtWidgets
+from Qt import QtCore, QtGui, QtWidgets
 import maya.cmds as cmds
 import os
 import lib

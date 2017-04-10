@@ -1,5 +1,5 @@
 ## -*- coding: utf-8 -*-
-from vendor.Qt import QtCore, QtGui, QtWidgets
+from Qt import QtCore, QtGui, QtWidgets
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import button_setting
 import button
