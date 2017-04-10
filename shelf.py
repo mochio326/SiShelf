@@ -2,7 +2,9 @@
 from Qt import QtCore, QtGui, QtWidgets
 try:
     from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+
 except:
+    # 2014以下のバージョン用
     MayaQWidgetDockableMixin = object
 
 import button_setting
@@ -16,6 +18,7 @@ import pymel.core as pm
 import re
 import sys
 import copy
+
 
 class SiShelfWeight(QtWidgets.QTabWidget, MayaQWidgetDockableMixin):
     TITLE = "SiShelf"
@@ -553,8 +556,14 @@ def get_show_repr(vis_judgment=True):
     
 
     dict_['display'] = True
-    dict_['dockable'] = _ui.isDockable()
-    dict_['floating'] = _ui.isFloating()
+    try:
+        dict_['dockable'] = _ui.isDockable()
+        dict_['floating'] = _ui.isFloating()
+
+    except AttributeError:
+        dict_['dockable'] = False
+        dict_['floating'] = False
+
     dict_['area'] = _ui.dockArea()
     if dict_['dockable'] is True:
         dock_dtrl = _ui.parent()
