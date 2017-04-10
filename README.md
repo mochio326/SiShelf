@@ -8,25 +8,43 @@ Softimageのシェルフをリスペクトして作成されたMaya用のシェ�
 
 ## 準備
 
-+ ダウロードしたSiShelfフォルダをスクリプトフォルダ（C:\Users\ユーザー名\Documents\maya\バージョン\ja_JP\scripts）に入れる。
-+ SiShelf/_userSetup.py の内容を C:\Users\ユーザー名\Documents\maya\バージョン\ja_JP\scripts\userSetup.py 等の中に追記  
-  ※userSetup.pyが無ければ_userSetup.pyをリネームして配置  
-  ※上記パスは環境により異なる場合があります。  
-  ※Gifhubからzipをダウンロードした場合はフォルダ名がSiShelf-masterとなっています。この場合はSiShelfにリネームしてください。
+ダウロードしたSiShelfフォルダへ `MAYA_MODULE_PATH` を通しす。
+
++ Maya.env を開く（C:\Users\ユーザー名\Documents\maya\バージョン\Maya.env）
++ *MAYA_MODULE_PATH* エントリが **すでにある** 場合:
+    既存行の行末へ `;` を付与しダウンロードし解凍したフォルダへのパスを追記
+    ``` bat
+    MAYA_MODULE_PATH=なにか既存のもの;C:\maya_modules\SiShelf
+    ```
+
++ *MAYA_MODULE_PATH* エントリが **ない** 場合:新規行として解凍フォルダを記入します。
+  ```batch
+  MAYA_MODULE_PATH=C:\maya_modules\SiShelf
+  ```
+
+ ※上記 Maya.env のパスは環境により異なる場合があります。 
+
+ ※上記 解凍フォルダは参考例です。他の任意のドライブ,階層,場所を指定可能です。 
+
+ ※Gifhubからzipをダウンロードした場合はフォルダ名がSiShelf-masterとなっています。この場合はSiShelfにリネームしてください。
 
 ## 実行
 
-   import SiShelf.shelf  
-   SiShelf.shelf.main()  
-  
+メインメニュー > Windows > SiShelf から開くことが可能です。もしくは Hotkey Editor > Custom Scripts > SiShelf からホットキーを割り振ることもできます。コードから実行する場合は以下の通りです。
+
+```python
+   import SiShelf.shelf
+   SiShelf.shelf.main()
+```
+
 上記コードをスクリプトエディタ(Pythonタブ)に貼り付けて実行。  
-  
-  
+
+```python
    import SiShelf.shelf  
    SiShelf.shelf.popup()  
-  
-とすると、マウスの位置にポップアップします。  
-ホットキーに登録して利用すると良いでしょう。
+```
+
+とすると、マウスの位置にポップアップします。
 
 ## 使い方
 

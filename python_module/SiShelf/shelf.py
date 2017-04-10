@@ -6,7 +6,6 @@ try:
 except:
     # 2014以下のバージョン用
     MayaQWidgetDockableMixin = object
-
 import button_setting
 import button
 import partition
