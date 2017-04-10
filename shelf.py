@@ -1,6 +1,10 @@
 ## -*- coding: utf-8 -*-
-from vendor.Qt import QtCore, QtGui, QtWidgets
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+from Qt import QtCore, QtGui, QtWidgets
+try:
+    from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+except:
+    MayaQWidgetDockableMixin = object
+
 import button_setting
 import button
 import partition
@@ -13,7 +17,7 @@ import re
 import sys
 import copy
 
-class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
+class SiShelfWeight(QtWidgets.QTabWidget, MayaQWidgetDockableMixin):
     TITLE = "SiShelf"
     URL = "https://github.com/mochio326/SiShelf"
     PEN_WIDTH = 1  # 矩形の枠の太さ
@@ -268,14 +272,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 for _var in _vars['button']:
                     # 辞書からインスタンスのプロパティに代入
                     data = button.ButtonData()
-                    {setattr(data, k, v) for k, v in _var.items()}
+                    for k, v in _var.items():
+                        setattr(data, k, v)
                     button.create(self.widget(tab_number), data)
 
             if _vars.get('partition') is not None:
                 for _var in _vars['partition']:
                     # 辞書からインスタンスのプロパティに代入
                     data = partition.PartitionData()
-                    {setattr(data, k, v) for k, v in _var.items()}
+                    for k, v in _var.items():
+                        setattr(data, k, v)
                     partition.create(self.widget(tab_number), data)
 
     def save_tab_data(self):
@@ -499,7 +505,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         data = button.ButtonData()
         js = lib.not_escape_json_load(path)
         if js is not None:
-            {setattr(data, k, v) for k, v in js.items()}
+            for k, v in js.items():
+                setattr(data, k, v)
         return data
 
     def _get_partition_default_data(self):
@@ -507,13 +514,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         data = partition.PartitionData()
         js = lib.not_escape_json_load(path)
         if js is not None:
-            {setattr(data, k, v) for k, v in js.items()}
+            for k, v in js.items():
+                setattr(data, k, v)
         return data
 
 # #################################################################################################
 
 def get_ui():
-    ui = {w.objectName(): w for w in QtWidgets.QApplication.allWidgets()}
+    ui = {}
+    for w in QtWidgets.QApplication.allWidgets():
+        ui[w.objectName()] = w
     if SiShelfWeight.TITLE in ui:
         return ui[SiShelfWeight.TITLE]
     return None
@@ -657,12 +667,18 @@ def main():
     # 画面中央に表示
     ui = make_ui()
     _floating = get_floating_data()
-    if _floating is None:
-        ui.show(dockable=True)
-    else:
-        # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる
-        # ui.show(dockable=True, x=floating['x'], y=floating['y'], width=floating['width'], height=floating['height'])
-        ui.show(dockable=True, width=_floating['width'], height=_floating['height'])
+    try:
+        if _floating is None:
+            ui.show(dockable=True)
+
+        else:
+            # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる
+            # ui.show(dockable=True, x=floating['x'], y=floating['y'], width=floating['width'], height=floating['height'])
+            ui.show(dockable=True, width=_floating['width'], height=_floating['height'])
+
+    except TypeError:
+        # バージョン判定して分岐したほうが良い
+        ui.show()
     sys.exit()
     app.exec_()
 
