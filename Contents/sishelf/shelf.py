@@ -17,6 +17,7 @@ import pymel.core as pm
 import re
 import sys
 import copy
+import maya.cmds as cmds
 
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
@@ -137,7 +138,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _result is not True:
             print("Cancel.")
             return None
-        meke_save_dir()
+        make_save_dir()
         path = get_button_default_filepath()
         lib.not_escape_json_dump(path, vars(data))
 
@@ -147,7 +148,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _result is not True:
             print("Cancel.")
             return None
-        meke_save_dir()
+        make_save_dir()
         path = get_partition_default_filepath()
         lib.not_escape_json_dump(path, vars(data))
 
@@ -246,13 +247,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         parts = data_obj.create(self.currentWidget(), data)
         self.selected = []
         self.repaint()
-        return parts
 
     # -----------------------
     # Save Load
     # -----------------------
     def __get_tab_data_path(self):
-        meke_save_dir()
+        make_save_dir()
         path = os.path.join(get_save_dir(), 'parts.json')
         return path
 
@@ -309,7 +309,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
             ls.append(_tab_data)
 
-        meke_save_dir()
+        make_save_dir()
         path = self.__get_tab_data_path()
         lib.not_escape_json_dump(path, ls)
 
@@ -338,7 +338,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             if _mimedata.hasUrls() is True:
                 #複数ファイルの場合は最後のファイルが有効になる
                 for url in _mimedata.urls():
-                    _path = re.sub("^/", "", url.path())
+                    if hasattr(url, 'path'):
+                        # PySide
+                        _path = re.sub("^/", "", url.path())
+                    else:
+                        # PySide2
+                        _path = re.sub("^file:///", "", url.url())
                 # 外部エディタから投げ込んだ場合もこちらに来るので回避
                 if _path != '':
                     data.externalfile = _path
@@ -353,6 +358,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                         print('This file format is not supported.')
                         return
                     data.label = _info.completeBaseName()
+                    data.code = ''
 
             self.create_button(data)
             self.save_tab_data()
@@ -421,10 +427,32 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             painter.restore()
 
     def closeEvent(self, event):
+        # 2017以前だとhideEventにすると正常にウインドウサイズなどの情報が取ってこれない
+        if maya_api_version() < 201700:
+            self.floating_save()
+        super(SiShelfWeight, self).closeEvent(event)
+
+    def hideEvent(self, event):
+        # 2017だとcloseEventにするとイベントが動かない…
+        if maya_api_version() >= 201700:
+            self.floating_save()
+
+    def floating_save(self):
         if self._floating_save is False:
             if self.isFloating() is True:
-                dict_ = get_show_repr(False)
-                meke_save_dir()
+                #dict_ = get_show_repr(False)
+                dict_ = {}
+                _sz = self.frameGeometry().size()
+
+                #2017だと取得してきたサイズ情報が-4pxになってる。。なぜかは分からない…
+                add = 0
+                if maya_api_version() >= 201700:
+                    add = 4
+
+                dict_['width'] = self.width() + add
+                dict_['height'] = self.height() + add
+
+                make_save_dir()
                 f = open(get_shelf_floating_filepath(), 'w')
                 json.dump(dict_, f)
                 f.close()
@@ -491,6 +519,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             css += 'border-color:red; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
 
+
     def _get_button_default_data(self):
         path = get_button_default_filepath()
         data = button.ButtonData()
@@ -510,10 +539,20 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
 # #################################################################################################
 
+
 def get_ui():
-    ui = {w.objectName(): w for w in QtWidgets.QApplication.allWidgets()}
-    if SiShelfWeight.TITLE in ui:
-        return ui[SiShelfWeight.TITLE]
+    all_ui = {w.objectName(): w for w in QtWidgets.QApplication.allWidgets()}
+    ui = []
+    for k, v in all_ui.items():
+        if SiShelfWeight.TITLE not in k:
+            continue
+        # 2017だとインスタンスの型をチェックしないと別の物まで入ってきてしまうらしい
+        # 2016以前だと比較すると通らなくなる…orz
+        if maya_api_version() >= 201700:
+            if isinstance(v, SiShelfWeight) is True:
+                return v
+        else:
+            return v
     return None
 
 
@@ -536,9 +575,9 @@ def get_show_repr(vis_judgment=True):
     _ui = get_ui()
     if _ui is None:
         return dict_
+
     if vis_judgment is True and _ui.isVisible() is False:
         return dict_
-    
 
     dict_['display'] = True
     dict_['dockable'] = _ui.isDockable()
@@ -555,6 +594,10 @@ def get_show_repr(vis_judgment=True):
     dict_['width'] = _sz.width()
     dict_['height'] = _sz.height()
     return dict_
+
+
+def maya_api_version():
+    return int(cmds.about(api=True))
 
 
 def get_save_dir():
@@ -579,7 +622,7 @@ def get_shelf_floating_filepath():
     return os.path.join(get_save_dir(), 'shelf_floating.json')
 
 
-def meke_save_dir():
+def make_save_dir():
     dir_ = get_save_dir()
     if os.path.isdir(dir_) is False:
         os.makedirs(dir_)
@@ -587,7 +630,7 @@ def meke_save_dir():
 
 def quit_app():
     dict = get_show_repr()
-    meke_save_dir()
+    make_save_dir()
     _f = open(get_shelf_docking_filepath(), 'w')
     json.dump(dict, _f)
     _f.close()
@@ -602,7 +645,6 @@ def restoration_docking_ui():
     ドッキングした状態のUIを復元する
     :return:
     '''
-    print 'restoration_docking_ui!!'
     path = get_shelf_docking_filepath()
     if os.path.isfile(path) is False:
         return
@@ -635,6 +677,18 @@ def make_ui():
     ui = get_ui()
     if ui is not None:
         ui.close()
+
+    # 2017からはWorkspaceControlが採用されて、専用コマンドで消さないといけなくなった？？
+    # https://gist.github.com/liorbenhorin/217bfb7e54c6f75b9b1b2b3d73a1a43a
+    if maya_api_version() >= 201700:
+        control = SiShelfWeight.TITLE + 'WorkspaceControl'
+        if cmds.workspaceControl(control, q=True, exists=True):
+            cmds.workspaceControl(control, e=True, close=True)
+            cmds.deleteUI(control, control=True)
+
+        if cmds.workspaceControlState(control, ex=True):
+            cmds.workspaceControlState(control, r=True)
+
     app = QtWidgets.QApplication.instance()
     ui = SiShelfWeight()
     return ui
@@ -665,6 +719,7 @@ def main():
             # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる
             # ui.show(dockable=True, x=floating['x'], y=floating['y'], width=floating['width'], height=floating['height'])
             ui.show(dockable=True, width=_floating['width'], height=_floating['height'])
+
 
     except TypeError:
         # バージョン判定して分岐したほうが良い
