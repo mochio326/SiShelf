@@ -1,4 +1,4 @@
-# SiShelf
+# SiShelf [Var.1.1]
 
 ![SiShelf](/images/01.png)
 
@@ -6,45 +6,43 @@ Softimageのシェルフをリスペクトして作成されたMaya用のシェ�
 見た目のカスタマイズや自由な配置が行え、標準のシェルフツールよりも自分好みのシェルフを作成出来ます。  
 また、Mayaメインウインドウにドッキングした状態だけでなく、フローティングウインドウとしても利用できます。  
 
-## 準備
+## バージョン1.0から1.1への移行手順
 
-ダウロードしたSiShelfフォルダへ `MAYA_MODULE_PATH` を通しす。
+初期型のバージョン1.0では手動でuserSetup.pyにコードを記述していましたが、1.1からは指定の場所にフォルダを置くだけで良くなりました。  
+1.0を導入した方は以下の手順で1.1へと移行してください。  
 
-+ Maya.env を開く（C:\Users\ユーザー名\Documents\maya\バージョン\Maya.env）
-+ *MAYA_MODULE_PATH* エントリが **すでにある** 場合:
-    既存行の行末へ `;` を付与しダウンロードし解凍したフォルダへのパスを追記
-    ``` bat
-    MAYA_MODULE_PATH=なにか既存のもの;C:\maya_modules\SiShelf
-    ```
+1. SiShelf[Var.1.0]フォルダの直下にあるdataフォルダを `C:\Users\ユーザー名\Documents\maya` へ `SiShelf_data` とリネームして移動させる。
+2. userSetup.pyに追記した部分を削除。
+3. 下記インストール項目の手順でVar.1.1をインストール
 
-+ *MAYA_MODULE_PATH* エントリが **ない** 場合:新規行として解凍フォルダを記入します。
-  ```batch
-  MAYA_MODULE_PATH=C:\maya_modules\SiShelf
+## インストール
+
+ダウロードしたSiShelfフォルダを `C:\Program Files\Autodesk\ApplicationPlugins` へコピーしてください。
   ```
+ ※複数バージョンのMayaに対応しています。2013以降のバージョンでは自動的に認識されツールが使える状態になります。
 
- ※上記 Maya.env のパスは環境により異なる場合があります。 
-
- ※上記 解凍フォルダは参考例です。他の任意のドライブ,階層,場所を指定可能です。 
-
- ※Gifhubからzipをダウンロードした場合はフォルダ名がSiShelf-masterとなっています。この場合はSiShelfにリネームしてください。
+ ※不要になった場合はフォルダを削除してください。
 
 ## 実行
 
-メインメニュー > Windows > SiShelf から開くことが可能です。もしくは Hotkey Editor > Custom Scripts > SiShelf からホットキーを割り振ることもできます。コードから実行する場合は以下の通りです。
+メインメニュー > Windows > SiShelf から開くことが可能です。もしくは Hotkey Editor > Custom Scripts > SiShelf からホットキーを割り振ることもできます。  
 
+![SiShelf](/images/09.png)
+
+コードから実行する場合は以下の通りです。（上記コードをスクリプトエディタ(Pythonタブ)に貼り付けて実行 ）
+
++ ウインドウが画面中央に表示されます。
 ```python
    import SiShelf.shelf
    SiShelf.shelf.main()
 ```
 
-上記コードをスクリプトエディタ(Pythonタブ)に貼り付けて実行。  
-
++ マウスの位置にポップアップ
 ```python
    import SiShelf.shelf  
    SiShelf.shelf.popup()  
 ```
 
-とすると、マウスの位置にポップアップします。
 
 ## 使い方
 
@@ -132,15 +130,14 @@ SiShelfはMayaのウインドウにドッキングすることができます。
 シェルフ内のデータはパーツの追加、削除、移動などの操作を行ったタイミングで自動的に保存されます。  
 現状は元に戻す機能はありません。注意してください。  
 
-データはツールと同階層のdataフォルダにjsonファイルとして作成れます。  
+データは `C:\Users\ユーザー名\Documents\maya` にjsonファイルとして作成れます。  
 jsonファイルはテキストファイルなので、やろうと思えば内容を変更して保存することで手動での書き換えも可能です。  
-
+複数バージョンのMayaからも同一データが参照されます。現状はバージョン違いによる参照先変更機能はありません。
 
 
 ## 動作確認
 
-動作確認はMAYA2015でのみ行っています。  
-[Qt.py](https://github.com/mottosso/Qt.py)を利用することでPySide2への行っているつもりなので、多分2017以降でも使えます。
+基本的にMAYA2015で行っています。
 
 
 
