@@ -5,7 +5,7 @@ import maya.cmds as cmds
 import maya.mel as mel
 import maya.utils
 
-import SiShelf.shelf
+import sishelf.shelf
 
 
 def menu_setup():
@@ -32,8 +32,8 @@ def menu_setup():
         echoCommand=True,
         command=dedent(
             '''
-                import SiShelf.shelf
-                SiShelf.shelf.main()
+                import sishelf.shelf
+                sishelf.shelf.main()
             ''')
     )
 
@@ -45,8 +45,8 @@ def menu_setup():
         echoCommand=True,
         command=dedent(
             '''
-                import SiShelf.shelf
-                SiShelf.shelf.popup()
+                import sishelf.shelf
+                sishelf.shelf.popup()
             ''')
     )
 
@@ -90,7 +90,7 @@ def register_sishelf_runtime_command():
         'annotation':      "Open SiShelf",
         'category':        "SiShelf",
         'commandLanguage': "python",
-        'command':         r'''"import SiShelf.shelf as sishelf\r\nsishelf.main() "''',
+        'command':         r'''"import sishelf.shelf as ss\r\nss.main() "''',
         'cmd_name':        "OpenSiShelf"
     }
     register_runtime_command(opts)
@@ -99,7 +99,7 @@ def register_sishelf_runtime_command():
         'annotation':      "Open SiShelf on mouse position",
         'category':        "SiShelf",
         'commandLanguage': "python",
-        'command':         r'''"import SiShelf.shelf as sishelf\r\nsishelf.popup() "''',
+        'command':         r'''"import sishelf.shelf as ss\r\nss.popup() "''',
         'cmd_name':        "OpenSiShelfOnMouse"
     }
     register_runtime_command(opts)
@@ -107,12 +107,12 @@ def register_sishelf_runtime_command():
 
 def register_events():
     # Maya Save shelf state on exit
-    SiShelf.shelf.make_quit_app_job()
+    sishelf.shelf.make_quit_app_job()
 
 
 def restore_shelf():
     # Restore docking state at startup
-    maya.utils.executeDeferred(SiShelf.shelf.restoration_docking_ui)
+    maya.utils.executeDeferred(sishelf.shelf.restoration_docking_ui)
 
 
 def jpn(string):

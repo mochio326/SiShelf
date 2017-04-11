@@ -7,7 +7,7 @@ def __register_sishelf_startup():
     from textwrap import dedent
     cmds.evalDeferred(dedent(
         """
-        import SiShelf.startup as s
+        import startup as s
 
         s.execute()
         """

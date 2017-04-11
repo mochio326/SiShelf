@@ -19,7 +19,7 @@ import sys
 import copy
 
 
-class SiShelfWeight(QtWidgets.QTabWidget, MayaQWidgetDockableMixin):
+class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     TITLE = "SiShelf"
     URL = "https://github.com/mochio326/SiShelf"
     PEN_WIDTH = 1  # 矩形の枠の太さ
@@ -516,16 +516,13 @@ class SiShelfWeight(QtWidgets.QTabWidget, MayaQWidgetDockableMixin):
         data = partition.PartitionData()
         js = lib.not_escape_json_load(path)
         if js is not None:
-            for k, v in js.items():
-                setattr(data, k, v)
+            {setattr(data, k, v) for k, v in js.items()}
         return data
 
 # #################################################################################################
 
 def get_ui():
-    ui = {}
-    for w in QtWidgets.QApplication.allWidgets():
-        ui[w.objectName()] = w
+    ui = {w.objectName(): w for w in QtWidgets.QApplication.allWidgets()}
     if SiShelfWeight.TITLE in ui:
         return ui[SiShelfWeight.TITLE]
     return None
@@ -555,14 +552,8 @@ def get_show_repr(vis_judgment=True):
     
 
     dict_['display'] = True
-    try:
-        dict_['dockable'] = _ui.isDockable()
-        dict_['floating'] = _ui.isFloating()
-
-    except AttributeError:
-        dict_['dockable'] = False
-        dict_['floating'] = False
-
+    dict_['dockable'] = _ui.isDockable()
+    dict_['floating'] = _ui.isFloating()
     dict_['area'] = _ui.dockArea()
     if dict_['dockable'] is True:
         dock_dtrl = _ui.parent()
@@ -578,8 +569,9 @@ def get_show_repr(vis_judgment=True):
 
 
 def get_save_dir():
-    _dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(_dir, 'data')
+    #_dir = os.path.dirname(os.path.abspath(__file__))
+    _dir = os.environ.get('MAYA_APP_DIR')
+    return os.path.join(_dir, 'SiShelf_data')
 
 
 def get_shelf_docking_filepath():
@@ -621,6 +613,7 @@ def restoration_docking_ui():
     ドッキングした状態のUIを復元する
     :return:
     '''
+    print 'restoration_docking_ui!!'
     path = get_shelf_docking_filepath()
     if os.path.isfile(path) is False:
         return
