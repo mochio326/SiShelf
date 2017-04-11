@@ -4,6 +4,7 @@ import gui.button_setting_ui
 import button
 import maya.cmds as cmds
 import os
+import lib
 
 class LineNumberTextEdit(QtWidgets.QTextEdit):
     def __init__(self, parent=None):
@@ -196,6 +197,11 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         #self.button_preview.addItem(spacer)
         self.button_preview.addWidget(btn)
         #self.button_preview.addItem(spacer)
+
+        # スタイルシート適用
+        css = lib.button_css(btn,  '')
+        self.setStyleSheet(css)
+
 
     def _get_maya_icon(self):
         icon, result = DccIconViewer.get_icon_name(self)
