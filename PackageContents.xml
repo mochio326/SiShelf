@@ -12,17 +12,17 @@
 	OnlineDocumentation="https://github.com/mochio326/SiShelf"
 
 	ProductCode="*"
-	UpgradeCode="{42BEF01A-459B-21BE-162A-2559D30C9BFC}" >
+>
 	
 	<CompanyDetails Name="mochio"
 		Phone=" "
-		Url="http://www.autodesk,com/"
-		Email="adn.apps@autodesk.com" />
+		Url="https://github.com/mochio326"
+		Email="326mochio@gmail.com" />
 
-	<RuntimeRequirements SupportPath="./Contents" OS="win64|macOS|linux" Platform="Maya" SeriesMin="2015" SeriesMax="2016"/>
+	<RuntimeRequirements SupportPath="./Contents" OS="win64|macOS|linux" Platform="Maya" SeriesMin="2013"/>
 
 	<Components>
-		<RuntimeRequirements SupportPath="./Contents" OS="win64" Platform="Maya" SeriesMin="2015" SeriesMax="2016"/>
+		<RuntimeRequirements SupportPath="./Contents" OS="win64" Platform="Maya" SeriesMin="2013"/>
 		<MayaEnv expr="PYTHONPATH +:= " />
 		<MayaEnv expr="PYTHONPATH +:= sishelf" />
 		<MayaEnv expr="PYTHONPATH +:= vendor" />
