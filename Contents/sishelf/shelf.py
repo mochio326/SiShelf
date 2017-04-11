@@ -45,7 +45,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.context_pos = QtCore.QPoint()
         self.cut_flag = False
 
-        self._set_stylesheet()
+        self.set_stylesheet()
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._context_menu)
@@ -54,7 +54,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _current_tab_change(self):
         self.selected = []
-        self._set_stylesheet()
+        self.set_stylesheet()
         self.update()
         self.save_tab_data()
 
@@ -99,7 +99,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             if self.isFloating() is False and self.dockArea() is not None:
                 rect = QtCore.QRect(self.context_pos, self.context_pos)
             self._get_parts_in_rectangle(rect)
-            self._set_stylesheet()
+            self.set_stylesheet()
             self.update()
         # マウス位置に出現
         _menu.exec_(cursor)
@@ -205,8 +205,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
         parts = self.selected[0]
 
-        print parts
-
         if isinstance(parts.data, button.ButtonData):
             _re = self.create_button(parts.data)
         elif isinstance(parts.data, partition.PartitionData):
@@ -215,6 +213,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _re is None:
             return
         self.delete_parts(parts)
+        self.set_stylesheet()
         self.save_tab_data()
 
     def _add_button(self):
@@ -402,7 +401,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self.origin = event.pos()
             rect = QtCore.QRect(self.origin, event.pos()).normalized()
             self._get_parts_in_rectangle(rect)
-            self._set_stylesheet()
+            self.set_stylesheet()
             self.origin = QtCore.QPoint()
             self.band = None
             self.update()
@@ -478,20 +477,10 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         geo = QtCore.QRect(point, geo.size())
         return geo
 
-    def _set_stylesheet(self):
-        css = 'QToolButton:hover{background:#707070;}'
-
-        # Maya2016からはボタンのsetColorでは背景色が変わらなくなっていたのでスタイルシートに全て設定
-        _buttons = self.currentWidget().findChildren(button.ButtonWidget)
-        for _b in _buttons:
-            css += '#' + _b.objectName() + '{'
-            if _b.data.use_bgcolor is True:
-                css += 'background:' + _b.data.bgcolor + ';'
-            css += 'border-color:#606060; border-style:solid; border-width:1px;}'
-
-            css += ':hover#' + _b.objectName() + '{background:#707070;}'
-            # 押した感を出す
-            css += ':pressed#' + _b.objectName() + '{padding:1px -1px -1px 1px;}'
+    def set_stylesheet(self):
+        css = ''
+        buttons = self.currentWidget().findChildren(button.ButtonWidget)
+        css = lib.button_css(buttons, css)
 
         # 選択中のパーツを誇張
         for s in self.selected:

@@ -38,6 +38,21 @@ def random_string(length, seq=string.digits + string.ascii_lowercase):
     return ''.join([sr.choice(seq) for i in xrange(length)])
 
 
+def button_css(buttons, css):
+    if isinstance(buttons, list) is False:
+        buttons = [buttons]
+    css += 'QToolButton:hover{background:#707070;}'
+    # Maya2016からはボタンのsetColorでは背景色が変わらなくなっていたのでスタイルシートに全て設定
+    for _b in buttons:
+        css += '#' + _b.objectName() + '{'
+        if _b.data.use_bgcolor is True:
+            css += 'background:' + _b.data.bgcolor + ';'
+        css += 'border-color:#606060; border-style:solid; border-width:1px;}'
+
+        css += ':hover#' + _b.objectName() + '{background:#707070;}'
+        # 押した感を出す
+        css += ':pressed#' + _b.objectName() + '{padding:1px -1px -1px 1px;}'
+    return css
 
 
 # http://qiita.com/tadokoro/items/131268c9a0fd1cf85bf4
