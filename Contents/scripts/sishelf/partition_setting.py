@@ -1,7 +1,10 @@
 ## -*- coding: utf-8 -*-
-from .vendor.Qt import QtWidgets
+import functools
+
+from .vendor.Qt import QtWidgets, QtCore
 from . import partition
 from .gui import partition_setting_ui
+
 
 class SettingDialog(QtWidgets.QDialog, partition_setting_ui.Ui_Form):
     def __init__(self, parent, data):
@@ -18,14 +21,34 @@ class SettingDialog(QtWidgets.QDialog, partition_setting_ui.Ui_Form):
 
         # コールバック関数の設定
         func = self._redraw_ui
-        self.line_label.textChanged.connect(func)
+        self.spinbox_label_font_size.valueChanged.connect(func)
 
         self.spinbox_line_length.valueChanged.connect(func)
         self.spinbox_line_width.valueChanged.connect(func)
 
         self.checkbox_use_label.stateChanged.connect(func)
         self.combo_style.currentIndexChanged.connect(func)
-        self.spinbox_label_font_size.valueChanged.connect(func)
+
+        '''
+        テキストエリアに日本語を入力中（IME未確定状態）にMayaがクラッシュする場合があった。
+        textChanged.connect をやめ、例えば focusOut や エンターキー押下を発火条件にすることで対応
+        '''
+        # self.line_label.textChanged.connect(func)
+
+        def _focus_out(event):
+            self._redraw_ui()
+
+        def _key_press(event, widget=None):
+            QtWidgets.QLineEdit.keyPressEvent(widget, event)
+
+            key = event.key()
+            print key
+            if (key == QtCore.Qt.Key_Enter) or (key == QtCore.Qt.Key_Return):
+                self._redraw_ui()
+
+        self.line_label.focusOutEvent = _focus_out
+        self.line_label.keyPressEvent = functools.partial(_key_press, widget=self.line_label)
+        self.line_label.setToolTip('It will be reflected in the preview when focus is out.')
 
 
         self.button_color.clicked.connect(self._select_color)

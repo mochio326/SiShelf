@@ -1,6 +1,7 @@
 ## -*- coding: utf-8 -*-
 import os
 import maya.cmds as cmds
+import functools
 
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from . import button
@@ -74,6 +75,7 @@ class LineNumberTextEdit(QtWidgets.QTextEdit):
             block = block.next()
         paint.end()
 
+
 class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
     def __init__(self, parent, data):
         super(SettingDialog, self).__init__(parent)
@@ -99,8 +101,6 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
 
         # コールバック関数の設定
         func = self._redraw_ui
-        self.text_label.textChanged.connect(func)
-        self.text_tooltip.textChanged.connect(func)
         self.checkbox_tooltip.stateChanged.connect(func)
         self.line_icon_file.textChanged.connect(func)
         self.checkbox_fix_size.stateChanged.connect(func)
@@ -125,6 +125,31 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.checkbox_bgcolor.stateChanged.connect(func)
         self.button_bgcolor.clicked.connect(self._select_bgcolor)
 
+
+        '''
+        テキストエリアに日本語を入力中（IME未確定状態）にMayaがクラッシュする場合があった。
+        textChanged.connect をやめ、例えば focusOut や エンターキー押下を発火条件にすることで対応
+        '''
+        #self.text_label.textChanged.connect(func)
+        #self.text_tooltip.textChanged.connect(func)
+
+        def _focus_out(event):
+            self._redraw_ui()
+
+        def _key_press(event, widget=None):
+            QtWidgets.QTextEdit.keyPressEvent(widget, event)
+
+            key = event.key()
+            if (key == QtCore.Qt.Key_Enter) or (key == QtCore.Qt.Key_Return):
+                self._redraw_ui()
+
+        self.text_label.focusOutEvent = _focus_out
+        self.text_tooltip.focusOutEvent = _focus_out
+        self.text_label.keyPressEvent = functools.partial(_key_press, widget=self.text_label)
+        self.text_tooltip.keyPressEvent = functools.partial(_key_press, widget=self.text_tooltip)
+        self.text_label.setToolTip('It will be reflected in the preview when focus is out.')
+        self.text_tooltip.setToolTip('It will be reflected in the preview when focus is out.')
+
     def _redraw_ui(self):
         self.text_script_code.setReadOnly(self.checkbox_externalfile.isChecked())
 
@@ -134,12 +159,13 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
             _suffix = QtCore.QFileInfo(_path).completeSuffix()
             if _suffix == "py":
                 script_language = 'Python'
-            elif _suffix == 'mel':
+            else:
                 script_language = 'MEL'
             index = self.combo_script_language.findText(script_language)
             self.combo_script_language.setCurrentIndex(index)
 
         self._preview_button_drawing()
+        self.repaint()
 
     def _select_bgcolor(self):
         color = QtWidgets.QColorDialog.getColor(self.bgcolor, self)
@@ -199,10 +225,14 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.button_preview.addWidget(btn)
         #self.button_preview.addItem(spacer)
 
-        # スタイルシート適用
-        css = lib.button_css(btn, '')
-        self.setStyleSheet(css)
+        self.set_stylesheet()
+        self.repaint()
 
+    def set_stylesheet(self):
+        css = ''
+        buttons = self.findChildren(button.ButtonWidget)
+        css = lib.button_css(buttons, css)
+        self.setStyleSheet(css)
 
     def _get_maya_icon(self):
         icon, result = DccIconViewer.get_icon_name(self)
