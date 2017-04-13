@@ -5,7 +5,7 @@
 	AutodeskProduct="Maya"
 	Name="SiShelf"
 	Description="Autodesk Maya SiShelf"
-	AppVersion="1.1.0"
+	AppVersion="1.1.1"
 	Author="mochio"
 	AppNameSpace="com.autodesk.exchange.maya.sishelf"
 	HelpFile=""
@@ -23,11 +23,8 @@
 
 	<Components>
 		<RuntimeRequirements SupportPath="./Contents" OS="win64" Platform="Maya" SeriesMin="2013"/>
-		<MayaEnv expr="PYTHONPATH +:= " />
-		<MayaEnv expr="PYTHONPATH +:= sishelf" />
-		<MayaEnv expr="PYTHONPATH +:= vendor" />
-		<ComponentEntry ModuleName="./Contents/userSetup.py" />
-		<ComponentEntry ModuleName="./Contents/startup.py" />
+		<ComponentEntry ModuleName="./scripts/userSetup.py" />
+		<ComponentEntry ModuleName="./scripts/startup.py" />
 	</Components>
 	
 </ApplicationPackage>

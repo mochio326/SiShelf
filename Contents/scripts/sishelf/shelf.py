@@ -1,5 +1,5 @@
 ## -*- coding: utf-8 -*-
-from Qt import QtCore, QtGui, QtWidgets
+from .vendor.Qt import QtCore, QtGui, QtWidgets
 try:
     from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
@@ -247,6 +247,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         parts = data_obj.create(self.currentWidget(), data)
         self.selected = []
         self.repaint()
+        return data
 
     # -----------------------
     # Save Load
@@ -444,13 +445,15 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 dict_ = {}
                 _sz = self.frameGeometry().size()
 
-                #2017だと取得してきたサイズ情報が-4pxになってる。。なぜかは分からない…
+                # 2017だと取得してきたサイズ情報が-4pxになってる。。なぜかは分からない…
+                # SP3では修正されていた
+                '''
                 add = 0
                 if maya_api_version() >= 201700:
                     add = 4
-
-                dict_['width'] = self.width() + add
-                dict_['height'] = self.height() + add
+                '''
+                dict_['width'] = self.width()
+                dict_['height'] = self.height()
 
                 make_save_dir()
                 f = open(get_shelf_floating_filepath(), 'w')
@@ -519,6 +522,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             css += 'border-color:red; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
 
+        print self.showRepr()
 
     def _get_button_default_data(self):
         path = get_button_default_filepath()
@@ -549,7 +553,8 @@ def get_ui():
         # 2017だとインスタンスの型をチェックしないと別の物まで入ってきてしまうらしい
         # 2016以前だと比較すると通らなくなる…orz
         if maya_api_version() >= 201700:
-            if isinstance(v, SiShelfWeight) is True:
+            if v.__class__.__name__ == 'SiShelfWeight':
+                print v
                 return v
         else:
             return v

@@ -1,8 +1,10 @@
 ## -*- coding: utf-8 -*-
-from Qt import QtCore, QtGui, QtWidgets
-import maya.cmds as cmds
 import os
-import lib
+import maya.cmds as cmds
+
+from .vendor.Qt import QtCore, QtGui, QtWidgets
+from . import lib
+
 
 class ButtonWidget(QtWidgets.QToolButton):
 

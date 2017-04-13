@@ -1,10 +1,9 @@
 ## -*- coding: utf-8 -*-
-from Qt import QtCore, QtGui, QtWidgets
-import gui.partition_setting_ui
-import partition
+from .vendor.Qt import QtWidgets
+from . import partition
+from .gui import partition_setting_ui
 
-
-class SettingDialog(QtWidgets.QDialog, gui.partition_setting_ui.Ui_Form):
+class SettingDialog(QtWidgets.QDialog, partition_setting_ui.Ui_Form):
     def __init__(self, parent, data):
         super(SettingDialog, self).__init__(parent)
         self.setupUi(self)

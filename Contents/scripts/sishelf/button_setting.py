@@ -1,10 +1,11 @@
 ## -*- coding: utf-8 -*-
-from Qt import QtCore, QtGui, QtWidgets
-import gui.button_setting_ui
-import button
-import maya.cmds as cmds
 import os
-import lib
+import maya.cmds as cmds
+
+from .vendor.Qt import QtCore, QtGui, QtWidgets
+from . import button
+from . import lib
+from .gui import button_setting_ui
 
 class LineNumberTextEdit(QtWidgets.QTextEdit):
     def __init__(self, parent=None):
@@ -73,7 +74,7 @@ class LineNumberTextEdit(QtWidgets.QTextEdit):
             block = block.next()
         paint.end()
 
-class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
+class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
     def __init__(self, parent, data):
         super(SettingDialog, self).__init__(parent)
         self.setupUi(self)
@@ -199,7 +200,7 @@ class SettingDialog(QtWidgets.QDialog, gui.button_setting_ui.Ui_Form):
         #self.button_preview.addItem(spacer)
 
         # スタイルシート適用
-        css = lib.button_css(btn,  '')
+        css = lib.button_css(btn, '')
         self.setStyleSheet(css)
 
 

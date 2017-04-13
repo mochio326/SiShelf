@@ -1,6 +1,7 @@
 ## -*- coding: utf-8 -*-
-from Qt import QtCore, QtGui, QtWidgets
-import lib
+from.vendor.Qt import QtCore, QtGui, QtWidgets
+
+from . import lib
 
 
 class PartitionWidget(QtWidgets.QWidget):

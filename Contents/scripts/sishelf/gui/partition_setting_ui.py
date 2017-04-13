@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-
-from Qt import QtCore, QtGui, QtWidgets
+from ..vendor import Qt
+from ..vendor.Qt import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
