@@ -24,7 +24,6 @@
 	<Components>
 		<RuntimeRequirements SupportPath="./Contents" OS="win64" Platform="Maya" SeriesMin="2013"/>
 		<ComponentEntry ModuleName="./scripts/userSetup.py" />
-		<ComponentEntry ModuleName="./scripts/startup.py" />
 	</Components>
 	
 </ApplicationPackage>

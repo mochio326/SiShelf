@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 from textwrap import dedent
-
 import maya.cmds as cmds
 import maya.mel as mel
 import maya.utils
-
-import sishelf.shelf
+from . import shelf
 
 
 def menu_setup():
@@ -107,12 +105,12 @@ def register_sishelf_runtime_command():
 
 def register_events():
     # Maya Save shelf state on exit
-    sishelf.shelf.make_quit_app_job()
+    shelf.make_quit_app_job()
 
 
 def restore_shelf():
     # Restore docking state at startup
-    maya.utils.executeDeferred(sishelf.shelf.restoration_docking_ui)
+    maya.utils.executeDeferred(shelf.restoration_docking_ui)
 
 
 def jpn(string):
