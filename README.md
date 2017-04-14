@@ -33,14 +33,14 @@ Softimageのシェルフをリスペクトして作成されたMaya用のシェ�
 
 + ウインドウが画面中央に表示されます。
 ```python
-   import SiShelf.shelf
-   SiShelf.shelf.main()
+   import sishelf.shelf
+   sishelf.shelf.main()
 ```
 
 + マウスの位置にポップアップ
 ```python
-   import SiShelf.shelf  
-   SiShelf.shelf.popup()  
+   import sishelf.shelf  
+   sishelf.shelf.popup()  
 ```
 
 
