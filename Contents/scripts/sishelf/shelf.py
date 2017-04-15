@@ -45,6 +45,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.clipboard = None
         self.context_pos = QtCore.QPoint()
         self.cut_flag = False
+        self.parts_moving = False
 
         self.set_stylesheet()
 
@@ -94,7 +95,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         # タブバーの高さを考慮 （ただ実際のタブの大きさと数ピクセルずれてる気がする
         self.context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
         # パーツが矩形で選択されていなければマウス位置の下のボタンを選択しておく
-        if len(self.selected) == 0:
+        # 1個選択状態の場合は選択し直した方が直感的な気がする
+        if len(self.selected) <= 1:
             rect = QtCore.QRect(pos, pos)
             # ドッキングしてる状態だとタブの高さを考慮したほうがいい！？なんじゃこの挙動は…
             if self.isFloating() is False and self.dockArea() is not None:
@@ -366,7 +368,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
 
-            if len(self.selected) > 0:
+            if len(self.selected) > 1:
                 # 複数選択されていたらまとめて移動を優先
                 self._selected_parts_move(event.pos())
             else:
@@ -374,9 +376,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self.save_tab_data()
                 self.origin = QtCore.QPoint()
 
+            self.parts_moving = False
+            self.update()
+
             # よくわからん
             event.setDropAction(QtCore.Qt.MoveAction)
             event.accept()
+
+    def dragMoveEvent(self, event):
+        # パーツを移動中の描画更新
+        if self.parts_moving is True:
+            self._selected_parts_move(event.pos(), False, False)
+            self.update()
 
     def dragEnterEvent(self, event):
         '''
@@ -387,7 +398,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if mime.hasText() is True or mime.hasUrls() is True:
             event.accept()
         elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
+            self.parts_moving = True
+            if len(self.selected) <= 1:
+                self.selected = [event.source()]
+                self.set_stylesheet()
             event.accept()
+            self.update()
         else:
             event.ignore()
 
@@ -396,9 +412,19 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if event.button() == QtCore.Qt.LeftButton:
             self.band = QtCore.QRect()
 
+        if event.button() == QtCore.Qt.MiddleButton:
+            if len(self.selected) > 0:
+                self.set_stylesheet()
+                self.parts_moving = True
+
     def mouseMoveEvent(self, event):
         if self.band is not None:
             self.band = QtCore.QRect(self.origin, event.pos())
+            self.update()
+
+        # パーツを移動中の描画更新
+        if self.parts_moving is True:
+            self._selected_parts_move(event.pos(), False, False)
             self.update()
 
     def mouseReleaseEvent(self, event):
@@ -416,6 +442,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         # 選択中のパーツを移動
         if event.button() == QtCore.Qt.MiddleButton:
             self._selected_parts_move(event.pos())
+            self.parts_moving = False
+            self.update()
 
     def paintEvent(self, event):
         if self.band is not None:
@@ -425,6 +453,19 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             pen = QtGui.QPen(color, self.PEN_WIDTH)
             painter.setPen(pen)
             painter.drawRect(self.band)
+            painter.restore()
+
+        if self.parts_moving is True:
+            #矩形範囲の描画
+            painter = QtGui.QPainter(self)
+            color = QtGui.QColor(255, 255, 255, 125)
+            pen = QtGui.QPen(color, self.PEN_WIDTH)
+            painter.setPen(pen)
+            line = QtCore.QLine(
+                QtCore.QPoint(0, 50),
+                QtCore.QPoint(self.width(), 50)
+            )
+            painter.drawLine(line)
             painter.restore()
 
     def closeEvent(self, event):
@@ -464,27 +505,31 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # -----------------------
     # Others
     # -----------------------
-    def _selected_parts_move(self, after_pos):
+    def _selected_parts_move(self, after_pos, save=True, data_pos_update=True):
     # 選択中のパーツを移動
         if len(self.selected) > 0:
             for p in self.selected:
-                self._parts_move(p, after_pos)
-            self.origin = QtCore.QPoint()
-            self.save_tab_data()
+                self._parts_move(p, after_pos, data_pos_update)
+            if save is True:
+                self.origin = QtCore.QPoint()
+                self.save_tab_data()
 
-    def _parts_move(self, parts, after_pos):
+    def _parts_move(self, parts, after_pos, data_pos_update=True):
         # ドラッグ中に移動した相対位置を加算
         _rect = QtCore.QRect(self.origin, after_pos)
-        _x = parts.pos().x() + _rect.width()
-        _y = parts.pos().y() + _rect.height()
+        # _x = parts.pos().x() + _rect.width()
+        # _y = parts.pos().y() + _rect.height()
+        _x = parts.data.position_x + _rect.width()
+        _y = parts.data.position_y + _rect.height()
         if _x < 0:
             _x = 0
         if _y < 0:
             _y = 0
         _position = QtCore.QPoint(_x, _y)
         parts.move(_position)
-        parts.data.position_x = _x
-        parts.data.position_y = _y
+        if data_pos_update is True:
+            parts.data.position_x = _x
+            parts.data.position_y = _y
 
     def _get_parts_in_rectangle(self, rect):
         self.selected = []
@@ -521,8 +566,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                     css += 'background:' + s.data.bgcolor + ';'
             css += 'border-color:red; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
-
-        print self.showRepr()
 
     def _get_button_default_data(self):
         path = get_button_default_filepath()
@@ -666,6 +709,9 @@ def restoration_docking_ui():
             width=_dict['width'],
             height=_dict['height']
         )
+        workspaceControlName = window.objectName() + 'WorkspaceControl'
+        #cmds.workspaceControl(workspaceControlName, e=True, ttc=["AttributeEditor", -1], wp="preferred", mw=420)
+        cmds.workspaceControl(workspaceControlName, e=True, dtm=[_dict['area'], -1], wp="preferred", mw=420)
 
 
 def get_floating_data():
