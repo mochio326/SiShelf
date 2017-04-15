@@ -28,11 +28,23 @@ class ButtonWidget(QtWidgets.QToolButton):
         # ボタンが押されたときのボタンの色の変化
         QtWidgets.QPushButton.mousePressEvent(self, event)
 
+    def mouseReleaseEvent(self, event):
         # 左クリック
         if self.preview is True:
             return
+
         if event.button() == QtCore.Qt.LeftButton:
-            print('mousePressEvent : ' + self.data.label)
+            # ボタン以外のところでマウスを離したらキャンセル扱い
+            if event.pos().x() < 0 \
+                    or event.pos().x() > self.width() \
+                    or event.pos().y() < 0 \
+                    or event.pos().y() > self.height():
+                print('Cancel : ' + self.data.label)
+                return
+
+            event.pos().x(), event.pos().y()
+
+            print('Run : ' + self.data.label)
             if self.data.use_externalfile is True:
                 code = readfile(self.data.externalfile)
             else:
