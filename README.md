@@ -17,11 +17,15 @@ Softimageのシェルフをリスペクトして作成されたMaya用のシェ�
 
 ## インストール
 
-ダウロードしたSiShelfフォルダを `C:\Program Files\Autodesk\ApplicationPlugins` へコピーしてください。
+1. Clone or download > Download ZIP からZIPファイルをダウンロードしてください。
 
- ※複数バージョンのMayaに対応しています。2014以降のバージョンでは自動的に認識されツールが使える状態になります。
+2. 解凍したSiShelfフォルダを `C:\Program Files\Autodesk\ApplicationPlugins` へコピーしてください。
 
- ※不要になった場合はフォルダを削除してください。
++ ApplicationPluginsフォルダが存在しない場合は作成してください。
+
++ 複数バージョンのMayaに対応しています。2014以降のバージョンでは自動的に認識されツールが使える状態になります。
+
++ 不要になった場合はフォルダを削除してください。
 
 ## 実行
 
