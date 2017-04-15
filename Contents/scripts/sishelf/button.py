@@ -62,6 +62,10 @@ class ButtonData(lib.PartsData):
         self.bgcolor = '#4a4a4a'
         self.use_bgcolor = False
 
+        self.label_color = '#eeeeee'
+        self.use_label_color = False
+
+
         if path != '':
             self.use_externalfile = True
         else:

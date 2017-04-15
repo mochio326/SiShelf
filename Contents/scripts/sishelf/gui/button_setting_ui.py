@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
+
 from ..vendor import Qt
-from ..vendor.Qt import QtCore, QtGui, QtWidgets
+from ..vendor.Qt import QtCore, QtWidgets, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(504, 611)
+        Form.resize(524, 611)
         Form.setMinimumSize(QtCore.QSize(0, 0))
         self.gridLayout = QtWidgets.QGridLayout(Form)
         self.gridLayout.setObjectName("gridLayout")
@@ -168,6 +169,10 @@ class Ui_Form(object):
         self.text_label.setObjectName("text_label")
         self.horizontalLayout_4.addWidget(self.text_label)
         self.verticalLayout_2.addLayout(self.horizontalLayout_4)
+        self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_6.setContentsMargins(-1, 0, -1, -1)
+        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
+        self.verticalLayout_2.addLayout(self.horizontalLayout_6)
         self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_7.setContentsMargins(-1, 0, -1, -1)
         self.horizontalLayout_7.setObjectName("horizontalLayout_7")
@@ -199,7 +204,20 @@ class Ui_Form(object):
         self.horizontalLayout_12.setObjectName("horizontalLayout_12")
         spacerItem6 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_12.addItem(spacerItem6)
+        self.checkbox_label_color = QtWidgets.QCheckBox(self.groupBox_2)
+        self.checkbox_label_color.setText("")
+        self.checkbox_label_color.setObjectName("checkbox_label_color")
+        self.horizontalLayout_12.addWidget(self.checkbox_label_color)
+        self.button_label_color = QtWidgets.QPushButton(self.groupBox_2)
+        self.button_label_color.setObjectName("button_label_color")
+        self.horizontalLayout_12.addWidget(self.button_label_color)
+        spacerItem7 = QtWidgets.QSpacerItem(5, 20, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_12.addItem(spacerItem7)
         self.checkbox_bgcolor = QtWidgets.QCheckBox(self.groupBox_2)
+        self.checkbox_bgcolor.setMinimumSize(QtCore.QSize(0, 0))
+        self.checkbox_bgcolor.setSizeIncrement(QtCore.QSize(0, 0))
+        self.checkbox_bgcolor.setLayoutDirection(QtCore.Qt.RightToLeft)
+        self.checkbox_bgcolor.setText("")
         self.checkbox_bgcolor.setObjectName("checkbox_bgcolor")
         self.horizontalLayout_12.addWidget(self.checkbox_bgcolor)
         self.button_bgcolor = QtWidgets.QPushButton(self.groupBox_2)
@@ -247,8 +265,8 @@ class Ui_Form(object):
         self.checkbox_use_icon = QtWidgets.QCheckBox(self.groupBox)
         self.checkbox_use_icon.setObjectName("checkbox_use_icon")
         self.horizontalLayout_11.addWidget(self.checkbox_use_icon)
-        spacerItem7 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout_11.addItem(spacerItem7)
+        spacerItem8 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_11.addItem(spacerItem8)
         self.label_5 = QtWidgets.QLabel(self.groupBox)
         self.label_5.setObjectName("label_5")
         self.horizontalLayout_11.addWidget(self.label_5)
@@ -295,8 +313,8 @@ class Ui_Form(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Button</p></body></html>", None, -1))
         self.label.setText(Qt.QtCompat.translate("Form", "Tooltip ", None, -1))
         self.checkbox_tooltip.setText(Qt.QtCompat.translate("Form", "Same as code", None, -1))
-        self.checkbox_bgcolor.setText(Qt.QtCompat.translate("Form", "BackgroundColor", None, -1))
-        self.button_bgcolor.setText(Qt.QtCompat.translate("Form", "SelectColor", None, -1))
+        self.button_label_color.setText(Qt.QtCompat.translate("Form", "LabelColor", None, -1))
+        self.button_bgcolor.setText(Qt.QtCompat.translate("Form", "BackgroundColor", None, -1))
         self.groupBox.setTitle(Qt.QtCompat.translate("Form", "Icon", None, -1))
         self.label_8.setText(Qt.QtCompat.translate("Form", "File", None, -1))
         self.button_icon.setText(Qt.QtCompat.translate("Form", "...", None, -1))

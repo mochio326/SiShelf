@@ -45,6 +45,8 @@ def button_css(buttons, css):
     # Maya2016からはボタンのsetColorでは背景色が変わらなくなっていたのでスタイルシートに全て設定
     for _b in buttons:
         css += '#' + _b.objectName() + '{'
+        if _b.data.use_label_color is True:
+            css += 'color:' + _b.data.label_color + ';'
         if _b.data.use_bgcolor is True:
             css += 'background:' + _b.data.bgcolor + ';'
         css += 'border-color:#606060; border-style:solid; border-width:1px;}'

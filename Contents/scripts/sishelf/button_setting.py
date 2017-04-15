@@ -125,13 +125,13 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.checkbox_bgcolor.stateChanged.connect(func)
         self.button_bgcolor.clicked.connect(self._select_bgcolor)
 
+        self.checkbox_label_color.stateChanged.connect(func)
+        self.button_label_color.clicked.connect(self._select_label_color)
 
-        '''
-        テキストエリアに日本語を入力中（IME未確定状態）にMayaがクラッシュする場合があった。
-        textChanged.connect をやめ、例えば focusOut や エンターキー押下を発火条件にすることで対応
-        '''
-        #self.text_label.textChanged.connect(func)
-        #self.text_tooltip.textChanged.connect(func)
+        # テキストエリアに日本語を入力中（IME未確定状態）にMayaがクラッシュする場合があった。
+        # textChanged.connect をやめ、例えば focusOut や エンターキー押下を発火条件にすることで対応
+        # self.text_label.textChanged.connect(func)
+        # self.text_tooltip.textChanged.connect(func)
 
         def _focus_out(event):
             self._redraw_ui()
@@ -173,6 +173,12 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
             self.bgcolor = color.name()
             self._preview_button_drawing()
 
+    def _select_label_color(self):
+        color = QtWidgets.QColorDialog.getColor(self.label_color, self)
+        if color.isValid():
+            self.label_color = color.name()
+            self._preview_button_drawing()
+
     def _data_input(self, data):
         # データの入力
         self.text_label.setPlainText(data.label)
@@ -198,6 +204,9 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
 
         self.checkbox_bgcolor.setChecked(data.use_bgcolor)
         self.bgcolor = data.bgcolor
+
+        self.checkbox_label_color.setChecked(data.use_label_color)
+        self.label_color = data.label_color
 
         self.checkbox_externalfile.setChecked(data.use_externalfile)
         self.line_externalfile.setText(data.externalfile)
@@ -254,7 +263,7 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
 
         data.bool_tooltip = self.checkbox_tooltip.isChecked()
         data.tooltip = self.text_tooltip.toPlainText()
-        data.code = self.text_script_code.toPlainText()
+
         data.icon_file = self.line_icon_file.text()
         data.position_x = self.spinbox_btn_position_x.value()
         data.position_y = self.spinbox_btn_position_y.value()
@@ -275,9 +284,13 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         data.use_bgcolor = self.checkbox_bgcolor.isChecked()
         data.bgcolor = self.bgcolor
 
+        data.use_label_color = self.checkbox_label_color.isChecked()
+        data.label_color = self.label_color
+
         data.use_externalfile = self.checkbox_externalfile.isChecked()
         data.externalfile = self.line_externalfile.text()
         data.script_language = self.combo_script_language.currentText()
+        data.code = self.text_script_code.toPlainText()
 
         return data
 
