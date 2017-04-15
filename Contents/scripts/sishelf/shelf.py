@@ -19,7 +19,6 @@ import sys
 import copy
 import maya.cmds as cmds
 
-
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     TITLE = "SiShelf"
     URL = "https://github.com/mochio326/SiShelf"
@@ -88,23 +87,9 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _df.addAction('Button', self._button_default_setting)
         _df.addAction('Partition', self._partition_default_setting)
 
-        cursor = QtGui.QCursor.pos()
-
-        _ui = get_show_repr()
-        pos = QtCore.QPoint(cursor.x() - _ui['x'], cursor.y() - _ui['y'])
-        # タブバーの高さを考慮 （ただ実際のタブの大きさと数ピクセルずれてる気がする
-        self.context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
-        # パーツが矩形で選択されていなければマウス位置の下のボタンを選択しておく
-        # 1個選択状態の場合は選択し直した方が直感的な気がする
-        if len(self.selected) <= 1:
-            rect = QtCore.QRect(pos, pos)
-            # ドッキングしてる状態だとタブの高さを考慮したほうがいい！？なんじゃこの挙動は…
-            if self.isFloating() is False and self.dockArea() is not None:
-                rect = QtCore.QRect(self.context_pos, self.context_pos)
-            self._get_parts_in_rectangle(rect)
-            self.set_stylesheet()
-            self.update()
+        self._select_cursor_pos_parts()
         # マウス位置に出現
+        cursor = QtGui.QCursor.pos()
         _menu.exec_(cursor)
 
     def _copy(self):
@@ -340,12 +325,10 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
             if _mimedata.hasUrls() is True:
                 #複数ファイルの場合は最後のファイルが有効になる
-                for url in _mimedata.urls():
+                for url in _mimedata.urls():  # PySide
                     if hasattr(url, 'path'):
-                        # PySide
                         _path = re.sub("^/", "", url.path())
-                    else:
-                        # PySide2
+                    else:  # PySide2
                         _path = re.sub("^file:///", "", url.url())
                 # 外部エディタから投げ込んだ場合もこちらに来るので回避
                 if _path != '':
@@ -376,18 +359,19 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self.save_tab_data()
                 self.origin = QtCore.QPoint()
 
-            self.parts_moving = False
-            self.update()
-
             # よくわからん
             event.setDropAction(QtCore.Qt.MoveAction)
             event.accept()
 
+        self.parts_moving = False
+        self.repaint()
+
     def dragMoveEvent(self, event):
         # パーツを移動中の描画更新
-        if self.parts_moving is True:
+        if len(self.selected) > 0:
+            self.parts_moving = True
             self._selected_parts_move(event.pos(), False, False)
-            self.update()
+        self.repaint()
 
     def dragEnterEvent(self, event):
         '''
@@ -398,12 +382,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if mime.hasText() is True or mime.hasUrls() is True:
             event.accept()
         elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
-            self.parts_moving = True
-            if len(self.selected) <= 1:
-                self.selected = [event.source()]
-                self.set_stylesheet()
             event.accept()
-            self.update()
+
         else:
             event.ignore()
 
@@ -411,24 +391,26 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.origin = event.pos()
         if event.button() == QtCore.Qt.LeftButton:
             self.band = QtCore.QRect()
+            self.parts_moving = False
 
         if event.button() == QtCore.Qt.MiddleButton:
-            if len(self.selected) > 0:
+            self._select_cursor_pos_parts()
+            if len(self.selected) <= 1:
                 self.set_stylesheet()
-                self.parts_moving = True
+        self.repaint()
 
     def mouseMoveEvent(self, event):
         if self.band is not None:
             self.band = QtCore.QRect(self.origin, event.pos())
-            self.update()
 
         # パーツを移動中の描画更新
-        if self.parts_moving is True:
+        if len(self.selected) > 0:
+            self.parts_moving = True
             self._selected_parts_move(event.pos(), False, False)
-            self.update()
+
+        self.repaint()
 
     def mouseReleaseEvent(self, event):
-
         if event.button() == QtCore.Qt.LeftButton:
             if not self.origin:
                 self.origin = event.pos()
@@ -437,13 +419,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.set_stylesheet()
             self.origin = QtCore.QPoint()
             self.band = None
-            self.update()
 
         # 選択中のパーツを移動
         if event.button() == QtCore.Qt.MiddleButton:
             self._selected_parts_move(event.pos())
-            self.parts_moving = False
-            self.update()
+
+        self.parts_moving = False
+        self.repaint()
 
     def paintEvent(self, event):
         if self.band is not None:
@@ -456,16 +438,27 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             painter.restore()
 
         if self.parts_moving is True:
-            #矩形範囲の描画
+            # スナップガイドの表示
             painter = QtGui.QPainter(self)
-            color = QtGui.QColor(255, 255, 255, 125)
+            color = QtGui.QColor(255, 255, 255, 20)
             pen = QtGui.QPen(color, self.PEN_WIDTH)
+            pen.setStyle(QtCore.Qt.DashDotLine)
             painter.setPen(pen)
-            line = QtCore.QLine(
-                QtCore.QPoint(0, 50),
-                QtCore.QPoint(self.width(), 50)
-            )
-            painter.drawLine(line)
+
+            snap_unit_x = 20
+            snap_unit_y = 20
+            _tab_h = self.sizeHint().height() - 4
+
+            for i in range(self.height() / snap_unit_x):
+                _h = snap_unit_x * i + _tab_h
+                line = QtCore.QLine(QtCore.QPoint(0, _h), QtCore.QPoint(self.width(), _h))
+                painter.drawLine(line)
+
+            for i in range(self.width() / snap_unit_x):
+                _w = snap_unit_y * i + 1
+                line = QtCore.QLine(QtCore.QPoint(_w, _tab_h), QtCore.QPoint(_w, self.height() + _tab_h))
+                painter.drawLine(line)
+
             painter.restore()
 
     def closeEvent(self, event):
@@ -519,12 +512,19 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _rect = QtCore.QRect(self.origin, after_pos)
         # _x = parts.pos().x() + _rect.width()
         # _y = parts.pos().y() + _rect.height()
+
+        snap_unit_x = 20
+        snap_unit_y = 20
+
         _x = parts.data.position_x + _rect.width()
         _y = parts.data.position_y + _rect.height()
         if _x < 0:
             _x = 0
         if _y < 0:
             _y = 0
+
+        _x = int(_x / snap_unit_x) * snap_unit_x
+        _y = int(_y / snap_unit_y) * snap_unit_y
         _position = QtCore.QPoint(_x, _y)
         parts.move(_position)
         if data_pos_update is True:
@@ -584,6 +584,34 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             {setattr(data, k, v) for k, v in js.items()}
         return data
 
+    def _select_cursor_pos_parts(self):
+        '''
+        複数選択されていなければマウス直下のパーツを選択する
+        :return:
+        '''
+        cursor = QtGui.QCursor.pos()
+        _ui = get_show_repr()
+        pos = QtCore.QPoint(cursor.x() - _ui['x'], cursor.y() - _ui['y'])
+        # タブバーの高さを考慮 （ただ実際のタブの大きさと数ピクセルずれてる気がする
+        self.context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
+        # パーツが矩形で選択されていなければマウス位置の下のボタンを選択しておく
+        # 1個選択状態の場合は選択し直した方が直感的な気がする
+        if len(self.selected) <= 1:
+            _l = len(self.selected)
+            _s = self.selected
+
+            rect = QtCore.QRect(pos, pos)
+            # ドッキングしてる状態だとタブの高さを考慮したほうがいい！？なんじゃこの挙動は…
+            if self.isFloating() is False and self.dockArea() is not None:
+                rect = QtCore.QRect(self.context_pos, self.context_pos)
+            self._get_parts_in_rectangle(rect)
+            if len(self.selected) > 1:
+                self.selected = [self.selected[0]]
+            if _l == 1 and len(self.selected) == 0:
+                self.selected = _s
+            self.set_stylesheet()
+            self.repaint()
+
 # #################################################################################################
 
 
@@ -597,7 +625,6 @@ def get_ui():
         # 2016以前だと比較すると通らなくなる…orz
         if maya_api_version() >= 201700:
             if v.__class__.__name__ == 'SiShelfWeight':
-                print v
                 return v
         else:
             return v
