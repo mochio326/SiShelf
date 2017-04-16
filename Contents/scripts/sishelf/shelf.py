@@ -2,15 +2,15 @@
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 try:
     from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-
 except:
     # 2014以下のバージョン用
     MayaQWidgetDockableMixin = object
-import button_setting
-import button
-import partition
-import partition_setting
-import lib
+from . import button_setting
+from . import button
+from . import partition
+from . import partition_setting
+from . import lib
+
 import json
 import os
 import pymel.core as pm
@@ -125,8 +125,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _result is not True:
             print("Cancel.")
             return None
-        make_save_dir()
-        path = get_button_default_filepath()
+        lib.make_save_dir()
+        path = lib.get_button_default_filepath()
         lib.not_escape_json_dump(path, vars(data))
 
     def _partition_default_setting(self):
@@ -135,8 +135,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _result is not True:
             print("Cancel.")
             return None
-        make_save_dir()
-        path = get_partition_default_filepath()
+        lib.make_save_dir()
+        path = lib.get_partition_default_filepath()
         lib.not_escape_json_dump(path, vars(data))
 
     def _delete_tab(self):
@@ -240,8 +240,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # Save Load
     # -----------------------
     def __get_tab_data_path(self):
-        make_save_dir()
-        path = os.path.join(get_save_dir(), 'parts.json')
+        lib.make_save_dir()
+        path = os.path.join(lib.get_save_dir(), 'parts.json')
         return path
 
     def load_tab_data(self):
@@ -297,7 +297,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
             ls.append(_tab_data)
 
-        make_save_dir()
+        lib.make_save_dir()
         path = self.__get_tab_data_path()
         lib.not_escape_json_dump(path, ls)
 
@@ -383,7 +383,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             event.accept()
         elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
             event.accept()
-
         else:
             event.ignore()
 
@@ -463,13 +462,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def closeEvent(self, event):
         # 2017以前だとhideEventにすると正常にウインドウサイズなどの情報が取ってこれない
-        if maya_api_version() < 201700:
+        if lib.maya_api_version() < 201700:
             self.floating_save()
         super(SiShelfWeight, self).closeEvent(event)
 
     def hideEvent(self, event):
         # 2017だとcloseEventにするとイベントが動かない…
-        if maya_api_version() >= 201700:
+        if lib.maya_api_version() >= 201700:
             self.floating_save()
 
     def floating_save(self):
@@ -483,14 +482,14 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 # SP3では修正されていた
                 '''
                 add = 0
-                if maya_api_version() >= 201700:
+                if lib.maya_api_version() >= 201700:
                     add = 4
                 '''
                 dict_['width'] = self.width()
                 dict_['height'] = self.height()
 
-                make_save_dir()
-                f = open(get_shelf_floating_filepath(), 'w')
+                lib.make_save_dir()
+                f = open(lib.get_shelf_floating_filepath(), 'w')
                 json.dump(dict_, f)
                 f.close()
         self._floating_save = True
@@ -499,7 +498,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # Others
     # -----------------------
     def _selected_parts_move(self, after_pos, save=True, data_pos_update=True):
-    # 選択中のパーツを移動
+        # 選択中のパーツを移動
         if len(self.selected) > 0:
             for p in self.selected:
                 self._parts_move(p, after_pos, data_pos_update)
@@ -543,12 +542,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 continue
             self.selected.append(child)
 
-    def _get_parts_absolute_geometry(self, button):
+    def _get_parts_absolute_geometry(self, parts):
         '''
         type:ShelfButton.ButtonWidget -> QtCore.QSize
         '''
-        geo = button.geometry()
-        point = button.mapTo(self, geo.topLeft())
+        geo = parts.geometry()
+        point = parts.mapTo(self, geo.topLeft())
         point -= geo.topLeft()
         geo = QtCore.QRect(point, geo.size())
         return geo
@@ -568,7 +567,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.setStyleSheet(css)
 
     def _get_button_default_data(self):
-        path = get_button_default_filepath()
+        path = lib.get_button_default_filepath()
         data = button.ButtonData()
         js = lib.not_escape_json_load(path)
         if js is not None:
@@ -577,7 +576,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         return data
 
     def _get_partition_default_data(self):
-        path = get_partition_default_filepath()
+        path = lib.get_partition_default_filepath()
         data = partition.PartitionData()
         js = lib.not_escape_json_load(path)
         if js is not None:
@@ -623,7 +622,7 @@ def get_ui():
             continue
         # 2017だとインスタンスの型をチェックしないと別の物まで入ってきてしまうらしい
         # 2016以前だと比較すると通らなくなる…orz
-        if maya_api_version() >= 201700:
+        if lib.maya_api_version() >= 201700:
             if v.__class__.__name__ == 'SiShelfWeight':
                 return v
         else:
@@ -671,42 +670,10 @@ def get_show_repr(vis_judgment=True):
     return dict_
 
 
-def maya_api_version():
-    return int(cmds.about(api=True))
-
-
-def get_save_dir():
-    #_dir = os.path.dirname(os.path.abspath(__file__))
-    _dir = os.environ.get('MAYA_APP_DIR')
-    return os.path.join(_dir, 'SiShelf_data')
-
-
-def get_shelf_docking_filepath():
-    return os.path.join(get_save_dir(), 'shelf_docking.json')
-
-
-def get_button_default_filepath():
-    return os.path.join(get_save_dir(), 'button_default.json')
-
-
-def get_partition_default_filepath():
-    return os.path.join(get_save_dir(), 'partition_default.json')
-
-
-def get_shelf_floating_filepath():
-    return os.path.join(get_save_dir(), 'shelf_floating.json')
-
-
-def make_save_dir():
-    dir_ = get_save_dir()
-    if os.path.isdir(dir_) is False:
-        os.makedirs(dir_)
-
-
 def quit_app():
     dict = get_show_repr()
-    make_save_dir()
-    _f = open(get_shelf_docking_filepath(), 'w')
+    lib.make_save_dir()
+    _f = open(lib.get_shelf_docking_filepath(), 'w')
     json.dump(dict, _f)
     _f.close()
 
@@ -720,7 +687,7 @@ def restoration_docking_ui():
     ドッキングした状態のUIを復元する
     :return:
     '''
-    path = get_shelf_docking_filepath()
+    path = lib.get_shelf_docking_filepath()
     if os.path.isfile(path) is False:
         return
     f = open(path, 'r')
@@ -742,7 +709,7 @@ def restoration_docking_ui():
 
 
 def get_floating_data():
-    path = get_shelf_floating_filepath()
+    path = lib.get_shelf_floating_filepath()
     if os.path.isfile(path) is False:
         return None
     f = open(path, 'r')
@@ -758,7 +725,7 @@ def make_ui():
 
     # 2017からはWorkspaceControlが採用されて、専用コマンドで消さないといけなくなった？？
     # https://gist.github.com/liorbenhorin/217bfb7e54c6f75b9b1b2b3d73a1a43a
-    if maya_api_version() >= 201700:
+    if lib.maya_api_version() >= 201700:
         control = SiShelfWeight.TITLE + 'WorkspaceControl'
         if cmds.workspaceControl(control, q=True, exists=True):
             cmds.workspaceControl(control, e=True, close=True)

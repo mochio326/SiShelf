@@ -15,7 +15,6 @@ class PartsData(object):
         self.width = 100
         self.height = 50
 
-
     position = property(doc='position property')
     @position.getter
     def position(self):
@@ -71,6 +70,42 @@ def not_escape_json_load(path):
     with open(path) as fh:
         data = json.loads(fh.read(), "utf-8")
     return data
+
+
+
+
+def maya_api_version():
+    return int(cmds.about(api=True))
+
+
+# -----------------------
+# path関連
+# -----------------------
+def get_save_dir():
+    _dir = os.environ.get('MAYA_APP_DIR')
+    return os.path.join(_dir, 'SiShelf_data')
+
+
+def get_shelf_docking_filepath():
+    return os.path.join(get_save_dir(), 'shelf_docking.json')
+
+
+def get_button_default_filepath():
+    return os.path.join(get_save_dir(), 'button_default.json')
+
+
+def get_partition_default_filepath():
+    return os.path.join(get_save_dir(), 'partition_default.json')
+
+
+def get_shelf_floating_filepath():
+    return os.path.join(get_save_dir(), 'shelf_floating.json')
+
+
+def make_save_dir():
+    dir_ = get_save_dir()
+    if os.path.isdir(dir_) is False:
+        os.makedirs(dir_)
 
 #-----------------------------------------------------------------------------
 # EOF
