@@ -4,6 +4,7 @@ import random
 import string
 import os
 import json
+import maya.cmds as cmds
 
 class PartsData(object):
     def __init__(self):
@@ -100,6 +101,10 @@ def get_partition_default_filepath():
 
 def get_shelf_floating_filepath():
     return os.path.join(get_save_dir(), 'shelf_floating.json')
+    
+
+def get_shelf_option_filepath():
+    return os.path.join(get_save_dir(), 'shelf_option.json')
 
 
 def make_save_dir():

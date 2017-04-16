@@ -10,6 +10,7 @@ from . import button
 from . import partition
 from . import partition_setting
 from . import lib
+from . import shelf_option
 
 import json
 import os
@@ -17,7 +18,6 @@ import pymel.core as pm
 import re
 import sys
 import copy
-import maya.cmds as cmds
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     TITLE = "SiShelf"
@@ -45,6 +45,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.context_pos = QtCore.QPoint()
         self.cut_flag = False
         self.parts_moving = False
+        self.shelf_option = shelf_option.OptionData()
 
         self.set_stylesheet()
 
@@ -87,10 +88,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _df.addAction('Button', self._button_default_setting)
         _df.addAction('Partition', self._partition_default_setting)
 
+        _menu.addSeparator()
+        _menu.addAction('Option', self._option)
+
         self._select_cursor_pos_parts()
         # マウス位置に出現
         cursor = QtGui.QCursor.pos()
         _menu.exec_(cursor)
+
+    def _option(self):
+        self.shelf_option = shelf_option.OptionDialog.open(self)
 
     def _copy(self):
         self.clipboard = copy.deepcopy(self.selected[0].data)
@@ -401,11 +408,11 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def mouseMoveEvent(self, event):
         if self.band is not None:
             self.band = QtCore.QRect(self.origin, event.pos())
-
-        # パーツを移動中の描画更新
-        if len(self.selected) > 0:
-            self.parts_moving = True
-            self._selected_parts_move(event.pos(), False, False)
+        else:
+            # パーツを移動中の描画更新
+            if len(self.selected) > 0:
+                self.parts_moving = True
+                self._selected_parts_move(event.pos(), False, False)
 
         self.repaint()
 
@@ -436,29 +443,34 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             painter.drawRect(self.band)
             painter.restore()
 
-        if self.parts_moving is True:
-            # スナップガイドの表示
-            painter = QtGui.QPainter(self)
-            color = QtGui.QColor(255, 255, 255, 20)
-            pen = QtGui.QPen(color, self.PEN_WIDTH)
-            pen.setStyle(QtCore.Qt.DashDotLine)
-            painter.setPen(pen)
+        if self.parts_moving is True \
+                and self.shelf_option.snap_active is True\
+                and self.shelf_option.snap_grid is True:
+            self.draw_snap_gide()
 
-            snap_unit_x = 20
-            snap_unit_y = 20
-            _tab_h = self.sizeHint().height() - 4
+    def draw_snap_gide(self):
+        # スナップガイドの表示
+        painter = QtGui.QPainter(self)
+        color = QtGui.QColor(255, 255, 255, 40)
+        pen = QtGui.QPen(color, self.PEN_WIDTH)
+        pen.setStyle(QtCore.Qt.DashDotLine)
+        painter.setPen(pen)
 
-            for i in range(self.height() / snap_unit_x):
-                _h = snap_unit_x * i + _tab_h
-                line = QtCore.QLine(QtCore.QPoint(0, _h), QtCore.QPoint(self.width(), _h))
-                painter.drawLine(line)
+        snap_unit_x = self.shelf_option.snap_width
+        snap_unit_y = self.shelf_option.snap_height
+        _tab_h = self.sizeHint().height() - 4
 
-            for i in range(self.width() / snap_unit_x):
-                _w = snap_unit_y * i + 1
-                line = QtCore.QLine(QtCore.QPoint(_w, _tab_h), QtCore.QPoint(_w, self.height() + _tab_h))
-                painter.drawLine(line)
-
-            painter.restore()
+        # 横線
+        for i in range(self.height() / snap_unit_y):
+            _h = snap_unit_y * i + _tab_h
+            line = QtCore.QLine(QtCore.QPoint(0, _h), QtCore.QPoint(self.width(), _h))
+            painter.drawLine(line)
+        # 縦線
+        for i in range(self.width() / snap_unit_x + 1):
+            _w = snap_unit_x * i + 1
+            line = QtCore.QLine(QtCore.QPoint(_w, _tab_h), QtCore.QPoint(_w, self.height() + _tab_h))
+            painter.drawLine(line)
+        painter.restore()
 
     def closeEvent(self, event):
         # 2017以前だとhideEventにすると正常にウインドウサイズなどの情報が取ってこれない
@@ -509,12 +521,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def _parts_move(self, parts, after_pos, data_pos_update=True):
         # ドラッグ中に移動した相対位置を加算
         _rect = QtCore.QRect(self.origin, after_pos)
-        # _x = parts.pos().x() + _rect.width()
-        # _y = parts.pos().y() + _rect.height()
-
-        snap_unit_x = 20
-        snap_unit_y = 20
-
         _x = parts.data.position_x + _rect.width()
         _y = parts.data.position_y + _rect.height()
         if _x < 0:
@@ -522,8 +528,10 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _y < 0:
             _y = 0
 
-        _x = int(_x / snap_unit_x) * snap_unit_x
-        _y = int(_y / snap_unit_y) * snap_unit_y
+        if self.shelf_option.snap_active is True:
+            _x = int(_x / self.shelf_option.snap_width) * self.shelf_option.snap_width
+            _y = int(_y / self.shelf_option.snap_height) * self.shelf_option.snap_height
+
         _position = QtCore.QPoint(_x, _y)
         parts.move(_position)
         if data_pos_update is True:
@@ -705,7 +713,7 @@ def restoration_docking_ui():
         )
         workspaceControlName = window.objectName() + 'WorkspaceControl'
         #cmds.workspaceControl(workspaceControlName, e=True, ttc=["AttributeEditor", -1], wp="preferred", mw=420)
-        cmds.workspaceControl(workspaceControlName, e=True, dtm=[_dict['area'], -1], wp="preferred", mw=420)
+        #cmds.workspaceControl(workspaceControlName, e=True, dtm=[_dict['area'], -1], wp="preferred", mw=420)
 
 
 def get_floating_data():
