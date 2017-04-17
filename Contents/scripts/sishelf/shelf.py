@@ -1,10 +1,5 @@
 ## -*- coding: utf-8 -*-
 from .vendor.Qt import QtCore, QtGui, QtWidgets
-try:
-    from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-except:
-    # 2014以下のバージョン用
-    MayaQWidgetDockableMixin = object
 from . import button_setting
 from . import button
 from . import partition
@@ -19,6 +14,22 @@ import maya.cmds as cmds
 import re
 import sys
 import copy
+
+if lib.maya_api_version() < 201500:
+    # 2014以下のバージョン用
+    MayaQWidgetDockableMixin = object
+
+elif lib.maya_api_version() < 201700:
+    from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+
+elif 201700 <= lib.maya_api_version() and lib.maya_api_version() < 201800:
+    # TODO: 新バージョンが出たら確認すること
+    from . import patch_201700
+    MayaQWidgetDockableMixin = patch_201700.MayaQWidgetDockableMixin2017
+
+else:
+    from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     TITLE = "SiShelf"
@@ -732,17 +743,6 @@ def make_ui():
     if ui is not None:
         ui.close()
 
-    # 2017からはWorkspaceControlが採用されて、専用コマンドで消さないといけなくなった？？
-    # https://gist.github.com/liorbenhorin/217bfb7e54c6f75b9b1b2b3d73a1a43a
-    if lib.maya_api_version() >= 201700:
-        control = SiShelfWeight.TITLE + 'WorkspaceControl'
-        if cmds.workspaceControl(control, q=True, exists=True):
-            cmds.workspaceControl(control, e=True, close=True)
-            cmds.deleteUI(control, control=True)
-
-        if cmds.workspaceControlState(control, ex=True):
-            cmds.workspaceControlState(control, r=True)
-
     app = QtWidgets.QApplication.instance()
     ui = SiShelfWeight()
     return ui
@@ -765,21 +765,47 @@ def main():
     # 画面中央に表示
     ui = make_ui()
     _floating = get_floating_data()
-    try:
-        if _floating is None:
-            ui.show(dockable=True)
+    if _floating:
+        width = _floating['width']
+        height = _floating['width']
 
-        else:
-            # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる
-            # ui.show(dockable=True, x=floating['x'], y=floating['y'], width=floating['width'], height=floating['height'])
-            ui.show(dockable=True, width=_floating['width'], height=_floating['height'])
+    else:
+        width = None
+        height = None
 
+    if lib.maya_api_version() > 201300:
+        ui_script = "import sishelf.shelf;sishelf.shelf.main()"
+        # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる
+        opts = {
+            "dockable": True,
+            "floating": False,
+            "width": width,
+            "height": height,
+            # 2017でのバグ回避のため area: left で決め打ちしてしまっているが
+            # 2017未満ではrestoration_docking_ui で area を再設定するため問題ない
+            # 2017 では workspace layout にどこにいるか等の実体がある
+            "area": "left",
+            "allowedArea": None,
+            "x": None,
+            "y": None,
 
-    except TypeError:
-        # バージョン判定して分岐したほうが良い
+            # below options have been introduced at 2017
+            "widthSizingProperty": None,
+            "heightSizingProperty": None,
+            "initWidthAsMinimum": None,
+            "retain": True,
+            "plugins": None,
+            "controls": None,
+            "uiScript": ui_script,
+            "closeCallback": None
+        }
+
+        ui.setDockableParameters(**opts)
         ui.show()
-    sys.exit()
-    app.exec_()
+
+    else:
+        # 2013
+        ui.show()
 
 
 if __name__ == '__main__':
