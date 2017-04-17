@@ -114,7 +114,7 @@ class MayaQWidgetDockableMixin2017(MayaQWidgetDockableMixin):
                                                                  requiredPlugin=plugins,
                                                                  requiredControl=controls)
 
-                elif uiScript is None:
+                elif uiScript is None or not cmds.workspaceControl(workspaceControlName, query=True, exists=True):
 
                     # if self.parent() is None or self.parent() == omui.MQtUtil.mainWindow():
                     if self.parent() or isinstance(self.parent(), QMainWindow):
