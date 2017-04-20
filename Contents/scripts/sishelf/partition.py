@@ -57,7 +57,6 @@ class PartitionWidget(QtWidgets.QWidget):
         _line_start_point = self.data.margin
         _line_end_point = self.data.line_length + self.data.margin
 
-
         if self.data.style == 0:
             # 水平
             self.resize(_w, _h)

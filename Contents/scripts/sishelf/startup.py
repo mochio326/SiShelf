@@ -4,7 +4,7 @@ import maya.cmds as cmds
 import maya.mel as mel
 import maya.utils
 from . import shelf
-
+from . import lib
 
 def menu_setup():
     cmd = '''
@@ -127,7 +127,9 @@ def jpn(string):
 
 
 def execute():
-    register_events()
     menu_setup()
     register_sishelf_runtime_command()
-    restore_shelf()
+    register_events()
+    # 2017以降ではworkspaceControlがあるので復元は必要ない
+    if lib.maya_api_version() < 201700:
+        restore_shelf()

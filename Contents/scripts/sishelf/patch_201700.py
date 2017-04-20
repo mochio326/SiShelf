@@ -25,6 +25,44 @@ except ImportError, e1:
     except ImportError, e2:
         raise ImportError, '%s, %s'%(e1,e2)   
 
+# https://gist.github.com/ryusas/626483f760c95b90622219d550c4985b
+u"""
+Maya 2017 workspaceControl の問題回避のサンプル。
+workspaceControl と workspaceControlState のゴミが残らないようにする。
+retain=False の場合でも何故か state のゴミが残ってしまうが、
+scriptJob で workspaceControl の削除を監視して state も同時に削除するようにする。
+retain=True の場合は、UI が閉じたとしても state は残って良いはずなので監視はしない。
+いずれにせよ、スタートアップの UI 再生時にエラーとなった場合は
+（そのツールをアンインストールしたり、何らかの問題が発生している場合）、
+UI が閉じられた（削除ではない）時に workspaceControl と state がともに削除されるようにする。
+exec を通しているのは、何故かそうするとグローバルスコープが汚れないため。
+"""
+_CODE_TEMPLATE = """
+exec('''
+import maya.cmds as cmds
+name = '%s'
+retain = %r
+def deleteWSCtl(*a):
+    if cmds.workspaceControl(name, ex=True):
+        cmds.deleteUI(name)
+    if cmds.workspaceControlState(name, ex=True):
+        cmds.workspaceControlState(name, remove=True)
+try:
+    if not retain:
+        cmds.scriptJob(uid=(name, deleteWSCtl))
+    %s
+except:
+    from traceback import print_exc
+    print_exc()
+    def cleanup():
+        if cmds.workspaceControl(name, q=True, vis=True):
+            cmds.workspaceControl(name, e=True, vcc=deleteWSCtl)
+        else:
+            deleteWSCtl()
+    cmds.evalDeferred(cleanup)
+''')
+"""
+
 
 class MayaQWidgetDockableMixin2017(MayaQWidgetDockableMixin):
     """patched C:/Program Files/Autodesk/Maya2017/Python/Lib/site-packages/maya/app/general/mayaMixin.py"""
@@ -55,42 +93,42 @@ class MayaQWidgetDockableMixin2017(MayaQWidgetDockableMixin):
                 
         :See: show(), hide(), and setVisible()
         '''
-        if ((dockable == True) or (dockable == None and self.isDockable())): # == Handle docked window ==
+        if ((dockable is True) or (dockable is None and self.isDockable())): # == Handle docked window ==
             # By default, when making dockable, make it floating
             #   This addresses an issue on Windows with the window decorators not showing up.
-            if floating == None and area == None:
+            if floating is None and area is None:
                 floating = True
 
             # Create workspaceControl if needed
-            if dockable == True and not self.isDockable():
+            if dockable is True and not self.isDockable():
                 # Retrieve original position and size
                 # Position
-                if x == None:
+                if x is None:
                     x = self.x()
                     # Give suitable default value if null
                     if x == 0:
                         x = 250
-                if y == None:
+                if y is None:
                     y = self.y()
                     # Give suitable default value if null
                     if y == 0:
                         y = 200
                 # Size
-                unininitializedSize = QSize(640,480)  # Hardcode: (640,480) is the default size for a QWidget
+                unininitializedSize = QSize(640, 480)  # Hardcode: (640,480) is the default size for a QWidget
                 if self.size() == unininitializedSize:
                     # Get size from widget sizeHint if size not yet initialized (before the first show())
                     widgetSizeHint = self.sizeHint()
                 else:
                     widgetSizeHint = self.size() # use the current size of the widget
-                if width == None:
+                if width is None:
                     width = widgetSizeHint.width()
-                if height == None:
+                if height is None:
                     height = widgetSizeHint.height()
-                if widthSizingProperty == None:
+                if widthSizingProperty is None:
                     widthSizingProperty = 'free'
-                if heightSizingProperty == None:
+                if heightSizingProperty is None:
                     heightSizingProperty = 'free'
-                if initWidthAsMinimum == None:
+                if initWidthAsMinimum is None:
                     initWidthAsMinimum = False
 
                 if controls is None:
@@ -99,8 +137,10 @@ class MayaQWidgetDockableMixin2017(MayaQWidgetDockableMixin):
                     plugins = []
 
                 workspaceControlName = self.objectName() + 'WorkspaceControl'
+
+                _e = cmds.workspaceControl(workspaceControlName, query=True, exists=True)
                 # Set to floating if requested or if no docking area given
-                if floating == True or area == None:
+                if floating is True or area is None:
                     workspaceControlName = cmds.workspaceControl(workspaceControlName,
                                                                  label=self.windowTitle(),
                                                                  retain=retain,
@@ -113,6 +153,7 @@ class MayaQWidgetDockableMixin2017(MayaQWidgetDockableMixin):
                                                                  heightProperty=heightSizingProperty,
                                                                  requiredPlugin=plugins,
                                                                  requiredControl=controls)
+
 
                 elif uiScript is None or not cmds.workspaceControl(workspaceControlName, query=True, exists=True):
 
@@ -155,7 +196,7 @@ class MayaQWidgetDockableMixin2017(MayaQWidgetDockableMixin):
                             else:
                                 parent = parent.parent()
 
-                        if foundParentWorkspaceControl == False:
+                        if foundParentWorkspaceControl is False:
                             # If parent workspace control cannot be found, just make the workspace control a floating window
                             workspaceControlName = cmds.workspaceControl(workspaceControlName,
                                                                          label=self.windowTitle(),
@@ -175,7 +216,18 @@ class MayaQWidgetDockableMixin2017(MayaQWidgetDockableMixin):
                 omui.MQtUtil.addWidgetToMayaLayout(long(mixinPtr), long(parent))
 
                 if uiScript is not None and len(uiScript):
-                    cmds.workspaceControl(workspaceControlName, e=True, uiScript=uiScript)
+                    # uiScriptはState削除のscriptJob付に加工して登録
+                    code = _CODE_TEMPLATE % (workspaceControlName, retain, uiScript)
+                    cmds.workspaceControl(workspaceControlName, e=True, uiScript=code)
+
+                    # 2017のStateが残ってしまうバグに対応
+                    def deleteWSCtl(*a):
+                        if cmds.workspaceControl(workspaceControlName, ex=True):
+                            cmds.deleteUI(workspaceControlName)
+                        if cmds.workspaceControlState(workspaceControlName, ex=True):
+                            cmds.workspaceControlState(workspaceControlName, remove=True)
+                    if not retain:
+                        cmds.scriptJob(uid=(workspaceControlName, deleteWSCtl))
 
                 if closeCallback is not None:
                     cmds.workspaceControl(workspaceControlName, e=True, closeCommand=closeCallback)
@@ -189,13 +241,13 @@ class MayaQWidgetDockableMixin2017(MayaQWidgetDockableMixin):
             if not dockable and self.isDockable():
                 # Retrieve original position and size
                 dockPos = self.parent().pos()
-                if x == None:
+                if x is None:
                     x = dockPos.x()
-                if y == None:
+                if y is None:
                     y = dockPos.y()
-                if width == None:
+                if width is None:
                     width = self.width()
-                if height == None:
+                if height is None:
                     height = self.height()
                 # Turn into a standalone window and reposition
                 currentVisibility = self.isVisible()
@@ -203,18 +255,18 @@ class MayaQWidgetDockableMixin2017(MayaQWidgetDockableMixin):
                 self.setVisible(currentVisibility)
                 
             # Handle position and sizing
-            if (width != None) or (height != None):
-                if width == None:
+            if (width is not None) or (height is not None):
+                if width is None:
                     width = self.width()
-                if height == None:
+                if height is None:
                     height = self.height()
                 self.resize(width, height)
-            if (x != None) or (y != None):
-                if x == None:
+            if (x is not None) or (y is not None):
+                if x is None:
                     x = self.x()
-                if y == None:
+                if y is None:
                     y = self.y()
-                self.move(x,y)
+                self.move(x, y)
 
 
 #-----------------------------------------------------------------------------
