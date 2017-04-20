@@ -24,6 +24,8 @@ class OptionDialog(QtWidgets.QDialog, shelf_option_ui.Ui_Form):
         self.spinbox_snap_height.setValue(data.snap_height)
         self.checkbox_snap_active.setChecked(data.snap_active)
         self.checkbox_snap_grid.setChecked(data.snap_grid)
+        self.spinbox_tab_height.setValue(data.tab_height)
+        self.spinbox_tab_label_size.setValue(data.tab_label_size)
 
     def data_save(self):
         data = OptionData()
@@ -31,6 +33,8 @@ class OptionDialog(QtWidgets.QDialog, shelf_option_ui.Ui_Form):
         data.snap_height = self.spinbox_snap_height.value()
         data.snap_active = self.checkbox_snap_active.isChecked()
         data.snap_grid = self.checkbox_snap_grid.isChecked()
+        data.tab_height = self.spinbox_tab_height.value()
+        data.tab_label_size = self.spinbox_tab_label_size.value()
         data.save()
 
     @staticmethod
@@ -53,6 +57,8 @@ class OptionData(object):
         self.snap_grid = True
         self.snap_width = 20
         self.snap_height = 20
+        self.tab_height = 18
+        self.tab_label_size = 8
         self._load()
 
     def save(self):
@@ -61,6 +67,8 @@ class OptionData(object):
         dict_['snap_grid'] = self.snap_grid
         dict_['snap_width'] = self.snap_width
         dict_['snap_height'] = self.snap_height
+        dict_['tab_height'] = self.tab_height
+        dict_['tab_label_size'] = self.tab_label_size
 
         lib.make_save_dir()
         f = open(lib.get_shelf_option_filepath(), 'w')

@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
+
 from ..vendor import Qt
-from ..vendor.Qt import QtWidgets, QtCore
+from ..vendor.Qt import QtCore, QtGui, QtWidgets
+
 
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(341, 141)
+        Form.resize(431, 201)
         Form.setMinimumSize(QtCore.QSize(0, 0))
         self.gridLayout = QtWidgets.QGridLayout(Form)
         self.gridLayout.setObjectName("gridLayout")
-        self.buttonbox = QtWidgets.QDialogButtonBox(Form)
-        self.buttonbox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
-        self.buttonbox.setObjectName("buttonbox")
-        self.gridLayout.addWidget(self.buttonbox, 1, 0, 1, 1)
         self.verticalLayout_5 = QtWidgets.QVBoxLayout()
         self.verticalLayout_5.setContentsMargins(-1, 0, -1, -1)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
@@ -71,6 +69,39 @@ class Ui_Form(object):
         self.verticalLayout.addWidget(self.groupBox_2)
         self.verticalLayout_5.addLayout(self.verticalLayout)
         self.gridLayout.addLayout(self.verticalLayout_5, 0, 0, 1, 1)
+        self.buttonbox = QtWidgets.QDialogButtonBox(Form)
+        self.buttonbox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.buttonbox.setObjectName("buttonbox")
+        self.gridLayout.addWidget(self.buttonbox, 2, 0, 1, 1)
+        self.groupBox = QtWidgets.QGroupBox(Form)
+        self.groupBox.setObjectName("groupBox")
+        self.gridLayout_2 = QtWidgets.QGridLayout(self.groupBox)
+        self.gridLayout_2.setObjectName("gridLayout_2")
+        self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_6.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
+        self.horizontalLayout_6.setContentsMargins(-1, 0, -1, -1)
+        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
+        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_6.addItem(spacerItem2)
+        self.label_8 = QtWidgets.QLabel(self.groupBox)
+        self.label_8.setObjectName("label_8")
+        self.horizontalLayout_6.addWidget(self.label_8)
+        self.spinbox_tab_label_size = QtWidgets.QSpinBox(self.groupBox)
+        self.spinbox_tab_label_size.setMinimumSize(QtCore.QSize(70, 0))
+        self.spinbox_tab_label_size.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.spinbox_tab_label_size.setMaximum(9999)
+        self.spinbox_tab_label_size.setObjectName("spinbox_tab_label_size")
+        self.horizontalLayout_6.addWidget(self.spinbox_tab_label_size)
+        self.label_9 = QtWidgets.QLabel(self.groupBox)
+        self.label_9.setObjectName("label_9")
+        self.horizontalLayout_6.addWidget(self.label_9)
+        self.spinbox_tab_height = QtWidgets.QSpinBox(self.groupBox)
+        self.spinbox_tab_height.setMinimumSize(QtCore.QSize(70, 0))
+        self.spinbox_tab_height.setMaximum(9999)
+        self.spinbox_tab_height.setObjectName("spinbox_tab_height")
+        self.horizontalLayout_6.addWidget(self.spinbox_tab_height)
+        self.gridLayout_2.addLayout(self.horizontalLayout_6, 0, 0, 1, 1)
+        self.gridLayout.addWidget(self.groupBox, 1, 0, 1, 1)
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -82,4 +113,7 @@ class Ui_Form(object):
         self.label_6.setText(Qt.QtCompat.translate("Form", "Height", None, -1))
         self.checkbox_snap_active.setText(Qt.QtCompat.translate("Form", "Active", None, -1))
         self.checkbox_snap_grid.setText(Qt.QtCompat.translate("Form", "Guide grid", None, -1))
+        self.groupBox.setTitle(Qt.QtCompat.translate("Form", "Tab", None, -1))
+        self.label_8.setText(Qt.QtCompat.translate("Form", "FontSize", None, -1))
+        self.label_9.setText(Qt.QtCompat.translate("Form", "Height", None, -1))
 

@@ -107,6 +107,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _option(self):
         self.shelf_option = shelf_option.OptionDialog.open(self)
+        self._set_stylesheet()
 
     def _copy(self):
         self.clipboard = copy.deepcopy(self.selected[0].data)
@@ -247,7 +248,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _result is not True:
             print("Cancel.")
             return None
-        parts = data_obj.create(self.currentWidget(), data)
+        data_obj.create(self.currentWidget(), data)
         self.selected = []
         self.repaint()
         return data
@@ -265,6 +266,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         for _vars in data:
             tab_number = self.count()
             self.insertTab(tab_number, QtWidgets.QWidget(), _vars['name'])
+
             if _vars['current'] is True:
                 self.setCurrentIndex(tab_number)
 
@@ -518,6 +520,14 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _set_stylesheet(self):
         css = ''
+
+        # タブ
+        css += 'QTabBar::tab { ' \
+                'height: ' + str(self.shelf_option.tab_height) + 'px;' \
+                'font-size: ' + str(self.shelf_option.tab_label_size) + 'pt;' \
+                '}'
+
+        # ボタン
         buttons = self.currentWidget().findChildren(button.ButtonWidget)
         css = lib.button_css(buttons, css)
 
