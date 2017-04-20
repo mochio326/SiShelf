@@ -12,7 +12,6 @@ import os
 import pymel.core as pm
 import re
 import copy
-import maya.cmds as cmds
 
 if lib.maya_api_version() < 201500:
     # 2014以下のバージョン用
@@ -685,7 +684,7 @@ def get_show_repr(vis_judgment=True):
     return dict_
 
 
-def save_docking_data():
+def quit_app():
     dict = get_show_repr()
     lib.make_save_dir()
     _f = open(lib.get_shelf_docking_filepath(), 'w')
@@ -693,20 +692,8 @@ def save_docking_data():
     _f.close()
 
 
-def delete_wsctl():
-    # 2017以降のworkspaceControlのゴミを削除するイベント
-    name = SiShelfWeight.TITLE + 'WorkspaceControl'
-    if cmds.workspaceControl(name, ex=True):
-        cmds.deleteUI(name)
-    if cmds.workspaceControlState(name, ex=True):
-        cmds.workspaceControlState(name, remove=True)
-
-
 def make_quit_app_job():
-    if lib.maya_api_version() >= 201700:
-        pm.scriptJob(e=("quitApplication", pm.Callback(delete_wsctl)))
-    else:
-        pm.scriptJob(e=("quitApplication", pm.Callback(save_docking_data)))
+    pm.scriptJob(e=("quitApplication", pm.Callback(quit_app)))
 
 
 def restoration_docking_ui():
