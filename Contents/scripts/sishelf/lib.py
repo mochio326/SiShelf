@@ -6,6 +6,8 @@ import os
 import json
 import maya.cmds as cmds
 
+TITLE = "SiShelf"
+
 class PartsData(object):
     def __init__(self):
         self.use_label = True
@@ -33,11 +35,6 @@ class PartsData(object):
         return QtCore.QSize(self.width, self.height)
 
 
-def random_string(length, seq=string.digits + string.ascii_lowercase):
-    sr = random.SystemRandom()
-    return ''.join([sr.choice(seq) for i in xrange(length)])
-
-
 def button_css(buttons, css):
     if isinstance(buttons, list) is False:
         buttons = [buttons]
@@ -57,26 +54,83 @@ def button_css(buttons, css):
     return css
 
 
-# http://qiita.com/tadokoro/items/131268c9a0fd1cf85bf4
-# 日本語をエスケープさせずにjsonを読み書きする
-def not_escape_json_dump(path, data):
-    text = json.dumps(data, sort_keys=True, ensure_ascii=False, indent=2)
-    with open(path, 'w') as fh:
-        fh.write(text.encode('utf-8'))
+def get_ui():
+    all_ui = {w.objectName(): w for w in QtWidgets.QApplication.allWidgets()}
+    ui = []
+    for k, v in all_ui.items():
+        if TITLE not in k:
+            continue
+        # 2017だとインスタンスの型をチェックしないと別の物まで入ってきてしまうらしい
+        # 2016以前だと比較すると通らなくなる…orz
+        if maya_api_version() >= 201700:
+            if v.__class__.__name__ == 'SiShelfWeight':
+                return v
+        else:
+            return v
+    return None
 
 
-def not_escape_json_load(path):
+# -----------------------
+# データ保存・読込関連
+# -----------------------
+def load_floating_data():
+    path = get_shelf_floating_filepath()
     if os.path.isfile(path) is False:
         return None
-    with open(path) as fh:
-        data = json.loads(fh.read(), "utf-8")
-    return data
+    f = open(path, 'r')
+    dict_ = json.load(f)
+    return dict_
 
 
+def floating_save(ui):
+    if ui.isFloating() is True:
+        dict_ = {}
+        dict_['width'] = ui.width()
+        dict_['height'] = ui.height()
+        make_save_dir()
+        f = open(get_shelf_floating_filepath(), 'w')
+        json.dump(dict_, f)
+        f.close()
 
 
-def maya_api_version():
-    return int(cmds.about(api=True))
+def get_show_repr(vis_judgment=True):
+    '''
+    UIの状態を取得
+    :param vis_judgment:表示状態を考慮するか
+    :return:
+    '''
+    dict_ = {}
+    dict_['display'] = False
+    dict_['dockable'] = True
+    dict_['floating'] = True
+    dict_['area'] = None
+    dict_['x'] = 0
+    dict_['y'] = 0
+    dict_['width'] = 400
+    dict_['height'] = 150
+
+    _ui = get_ui()
+    if _ui is None:
+        return dict_
+
+    if vis_judgment is True and _ui.isVisible() is False:
+        return dict_
+
+    dict_['display'] = True
+    dict_['dockable'] = _ui.isDockable()
+    dict_['floating'] = _ui.isFloating()
+    dict_['area'] = _ui.dockArea()
+    if dict_['dockable'] is True:
+        dock_dtrl = _ui.parent()
+        _pos = dock_dtrl.mapToGlobal(QtCore.QPoint(0, 0))
+    else:
+        _pos = _ui.pos()
+    _sz = _ui.geometry().size()
+    dict_['x'] = _pos.x()
+    dict_['y'] = _pos.y()
+    dict_['width'] = _sz.width()
+    dict_['height'] = _sz.height()
+    return dict_
 
 
 # -----------------------
@@ -107,10 +161,40 @@ def get_shelf_option_filepath():
     return os.path.join(get_save_dir(), 'shelf_option.json')
 
 
+def get_tab_data_path():
+    make_save_dir()
+    path = os.path.join(get_save_dir(), 'parts.json')
+    return path
+
 def make_save_dir():
     dir_ = get_save_dir()
     if os.path.isdir(dir_) is False:
         os.makedirs(dir_)
+
+
+# -----------------------
+# その他
+# -----------------------
+# http://qiita.com/tadokoro/items/131268c9a0fd1cf85bf4
+# 日本語をエスケープさせずにjsonを読み書きする
+def not_escape_json_dump(path, data):
+    text = json.dumps(data, sort_keys=True, ensure_ascii=False, indent=2)
+    with open(path, 'w') as fh:
+        fh.write(text.encode('utf-8'))
+
+def not_escape_json_load(path):
+    if os.path.isfile(path) is False:
+        return None
+    with open(path) as fh:
+        data = json.loads(fh.read(), "utf-8")
+    return data
+
+def random_string(length, seq=string.digits + string.ascii_lowercase):
+    sr = random.SystemRandom()
+    return ''.join([sr.choice(seq) for i in xrange(length)])
+
+def maya_api_version():
+    return int(cmds.about(api=True))
 
 #-----------------------------------------------------------------------------
 # EOF

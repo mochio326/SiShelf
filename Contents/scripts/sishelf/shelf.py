@@ -22,15 +22,14 @@ elif lib.maya_api_version() < 201700:
 
 elif 201700 <= lib.maya_api_version() and lib.maya_api_version() < 201800:
     # TODO: 新バージョンが出たら確認すること
-    from . import patch_201700
-    MayaQWidgetDockableMixin = patch_201700.MayaQWidgetDockableMixin2017
+    from .patch import m2017
+    MayaQWidgetDockableMixin = m2017.MayaQWidgetDockableMixin2017
 
 else:
     from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
-    TITLE = "SiShelf"
     URL = "https://github.com/mochio326/SiShelf"
     PEN_WIDTH = 1  # 矩形の枠の太さ
 
@@ -40,8 +39,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         # オブジェクト名とタイトルの変更
-        self.setObjectName(self.TITLE)
-        self.setWindowTitle(self.TITLE)
+        self.setObjectName(lib.TITLE)
+        self.setWindowTitle(lib.TITLE)
         self.setMovable(True)
         self.setAcceptDrops(True)
 
@@ -57,7 +56,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.parts_moving = False
         self.shelf_option = shelf_option.OptionData()
 
-        self.set_stylesheet()
+        self._set_stylesheet()
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._context_menu)
@@ -66,7 +65,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _current_tab_change(self):
         self.selected = []
-        self.set_stylesheet()
+        self._set_stylesheet()
         self.update()
         self.save_tab_data()
 
@@ -137,7 +136,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.cut_flag = True
 
     def _button_default_setting(self):
-        data = self._get_button_default_data()
+        data = button.get_default()
         data, _result = button_setting.SettingDialog.get_data(self, data)
         if _result is not True:
             print("Cancel.")
@@ -147,7 +146,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         lib.not_escape_json_dump(path, vars(data))
 
     def _partition_default_setting(self):
-        data = self._get_partition_default_data()
+        data = partition.get_default()
         data, _result = partition_setting.SettingDialog.get_data(self, data)
         if _result is not True:
             print("Cancel.")
@@ -218,17 +217,17 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _re is None:
             return
         self.delete_parts(parts)
-        self.set_stylesheet()
+        self._set_stylesheet()
         self.save_tab_data()
 
     def _add_button(self):
-        data = self._get_button_default_data()
+        data = button.get_default()
         data.position = self.context_pos
         self.create_button(data)
         self.save_tab_data()
 
     def _add_partition(self):
-        data = self._get_partition_default_data()
+        data = partition.get_default()
         data.position = self.context_pos
         self.create_partition(data)
         self.save_tab_data()
@@ -256,13 +255,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # -----------------------
     # Save Load
     # -----------------------
-    def __get_tab_data_path(self):
-        lib.make_save_dir()
-        path = os.path.join(lib.get_save_dir(), 'parts.json')
-        return path
-
     def load_tab_data(self):
-        path = self.__get_tab_data_path()
+        path = lib.get_tab_data_path()
         data = lib.not_escape_json_load(path)
         if data is None:
             self.insertTab(0, QtWidgets.QWidget(), 'Tab1')
@@ -315,7 +309,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             ls.append(_tab_data)
 
         lib.make_save_dir()
-        path = self.__get_tab_data_path()
+        path = lib.get_tab_data_path()
         lib.not_escape_json_dump(path, ls)
 
     # -----------------------
@@ -334,7 +328,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 y = 0
             _position = QtCore.QPoint(x, y)
 
-            data = self._get_button_default_data()
+            data = button.get_default()
             data.position = _position
 
             if _mimedata.hasText() is True:
@@ -342,8 +336,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
             if _mimedata.hasUrls() is True:
                 #複数ファイルの場合は最後のファイルが有効になる
-                for url in _mimedata.urls():  # PySide
-                    if hasattr(url, 'path'):
+                for url in _mimedata.urls():
+                    if hasattr(url, 'path'):  # PySide
                         _path = re.sub("^/", "", url.path())
                     else:  # PySide2
                         _path = re.sub("^file:///", "", url.url())
@@ -351,7 +345,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 if _path != '':
                     data.externalfile = _path
                     data.use_externalfile = True
-                    _info = QtCore.QFileInfo(data.externalfile)
+                    _info = QtCore.QFileInfo(_path)
                     _suffix = _info.completeSuffix()
                     if _suffix == 'py':
                         data.script_language = 'Python'
@@ -412,7 +406,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if event.button() == QtCore.Qt.MiddleButton:
             self._select_cursor_pos_parts()
             if len(self.selected) <= 1:
-                self.set_stylesheet()
+                self._set_stylesheet()
         self.repaint()
 
     def mouseMoveEvent(self, event):
@@ -432,7 +426,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self.origin = event.pos()
             rect = QtCore.QRect(self.origin, event.pos()).normalized()
             self._get_parts_in_rectangle(rect)
-            self.set_stylesheet()
+            self._set_stylesheet()
             self.origin = QtCore.QPoint()
             self.band = None
 
@@ -444,73 +438,29 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.repaint()
 
     def paintEvent(self, event):
+        # 矩形範囲の描画
         if self.band is not None:
-            #矩形範囲の描画
             painter = QtGui.QPainter(self)
             color = QtGui.QColor(255, 255, 255, 125)
             pen = QtGui.QPen(color, self.PEN_WIDTH)
             painter.setPen(pen)
             painter.drawRect(self.band)
             painter.restore()
-
+        # ガイドグリッドの描画
         if self.parts_moving is True \
                 and self.shelf_option.snap_active is True\
                 and self.shelf_option.snap_grid is True:
-            self.draw_snap_gide()
-
-    def draw_snap_gide(self):
-        # スナップガイドの表示
-        painter = QtGui.QPainter(self)
-        color = QtGui.QColor(255, 255, 255, 40)
-        pen = QtGui.QPen(color, self.PEN_WIDTH)
-        pen.setStyle(QtCore.Qt.DashDotLine)
-        painter.setPen(pen)
-
-        snap_unit_x = self.shelf_option.snap_width
-        snap_unit_y = self.shelf_option.snap_height
-        _tab_h = self.sizeHint().height() - 4
-
-        # 横線
-        for i in range(self.height() / snap_unit_y):
-            _h = snap_unit_y * i + _tab_h
-            line = QtCore.QLine(QtCore.QPoint(0, _h), QtCore.QPoint(self.width(), _h))
-            painter.drawLine(line)
-        # 縦線
-        for i in range(self.width() / snap_unit_x + 1):
-            _w = snap_unit_x * i + 1
-            line = QtCore.QLine(QtCore.QPoint(_w, _tab_h), QtCore.QPoint(_w, self.height() + _tab_h))
-            painter.drawLine(line)
-        painter.restore()
+            self._draw_snap_gide()
 
     def closeEvent(self, event):
         # 2017以前だとhideEventにすると正常にウインドウサイズなどの情報が取ってこれない
         if lib.maya_api_version() < 201700:
-            self.floating_save()
+            if self._floating_save is False:
+                lib.floating_save(self)
+            self._floating_save = True
+        # superだと2017でエラーになったため使用中止
         # super(SiShelfWeight, self).closeEvent(event)
         QtWidgets.QWidget.close(self)
-
-    def floating_save(self):
-        if self._floating_save is False:
-            if self.isFloating() is True:
-                #dict_ = get_show_repr(False)
-                dict_ = {}
-                _sz = self.frameGeometry().size()
-
-                # 2017だと取得してきたサイズ情報が-4pxになってる。。なぜかは分からない…
-                # SP3では修正されていた
-                '''
-                add = 0
-                if lib.maya_api_version() >= 201700:
-                    add = 4
-                '''
-                dict_['width'] = self.width()
-                dict_['height'] = self.height()
-
-                lib.make_save_dir()
-                f = open(lib.get_shelf_floating_filepath(), 'w')
-                json.dump(dict_, f)
-                f.close()
-        self._floating_save = True
 
     # -----------------------
     # Others
@@ -566,7 +516,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         geo = QtCore.QRect(point, geo.size())
         return geo
 
-    def set_stylesheet(self):
+    def _set_stylesheet(self):
         css = ''
         buttons = self.currentWidget().findChildren(button.ButtonWidget)
         css = lib.button_css(buttons, css)
@@ -580,30 +530,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             css += 'border-color:red; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
 
-    def _get_button_default_data(self):
-        path = lib.get_button_default_filepath()
-        data = button.ButtonData()
-        js = lib.not_escape_json_load(path)
-        if js is not None:
-            for k, v in js.items():
-                setattr(data, k, v)
-        return data
-
-    def _get_partition_default_data(self):
-        path = lib.get_partition_default_filepath()
-        data = partition.PartitionData()
-        js = lib.not_escape_json_load(path)
-        if js is not None:
-            {setattr(data, k, v) for k, v in js.items()}
-        return data
-
     def _select_cursor_pos_parts(self):
         '''
         複数選択されていなければマウス直下のパーツを選択する
         :return:
         '''
         cursor = QtGui.QCursor.pos()
-        _ui = get_show_repr()
+        _ui = lib.get_show_repr()
         pos = QtCore.QPoint(cursor.x() - _ui['x'], cursor.y() - _ui['y'])
         # タブバーの高さを考慮 （ただ実際のタブの大きさと数ピクセルずれてる気がする
         self.context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
@@ -622,70 +555,49 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self.selected = [self.selected[0]]
             if _l == 1 and len(self.selected) == 0:
                 self.selected = _s
-            self.set_stylesheet()
+            self._set_stylesheet()
             self.repaint()
+
+    def _draw_snap_gide(self):
+        # スナップガイドの表示
+        painter = QtGui.QPainter(self)
+        color = QtGui.QColor(255, 255, 255, 40)
+        pen = QtGui.QPen(color, )
+        pen.setStyle(QtCore.Qt.DashDotLine)
+        painter.setPen(pen)
+
+        snap_unit_x = self.shelf_option.snap_width
+        snap_unit_y = self.shelf_option.snap_height
+        _tab_h = self.sizeHint().height() - 4
+
+        # 横線
+        for i in range(self.height() / snap_unit_y):
+            _h = snap_unit_y * i + _tab_h
+            line = QtCore.QLine(QtCore.QPoint(0, _h), QtCore.QPoint(self.width(), _h))
+            painter.drawLine(line)
+        # 縦線
+        for i in range(self.width() / snap_unit_x + 1):
+            _w = snap_unit_x * i + 1
+            line = QtCore.QLine(QtCore.QPoint(_w, _tab_h), QtCore.QPoint(_w, self.height() + _tab_h))
+            painter.drawLine(line)
+        painter.restore()
 
 # #################################################################################################
 
 
-def get_ui():
-    all_ui = {w.objectName(): w for w in QtWidgets.QApplication.allWidgets()}
-    ui = []
-    for k, v in all_ui.items():
-        if SiShelfWeight.TITLE not in k:
-            continue
-        # 2017だとインスタンスの型をチェックしないと別の物まで入ってきてしまうらしい
-        # 2016以前だと比較すると通らなくなる…orz
-        if lib.maya_api_version() >= 201700:
-            if v.__class__.__name__ == 'SiShelfWeight':
-                return v
-        else:
-            return v
-    return None
+def make_ui():
+    # 同名のウインドウが存在したら削除
+    ui = lib.get_ui()
+    if ui is not None:
+        ui.close()
 
-
-def get_show_repr(vis_judgment=True):
-    '''
-
-    :param vis_judgment:表示状態を考慮するか
-    :return:
-    '''
-    dict_ = {}
-    dict_['display'] = False
-    dict_['dockable'] = True
-    dict_['floating'] = True
-    dict_['area'] = None
-    dict_['x'] = 0
-    dict_['y'] = 0
-    dict_['width'] = 400
-    dict_['height'] = 150
-
-    _ui = get_ui()
-    if _ui is None:
-        return dict_
-
-    if vis_judgment is True and _ui.isVisible() is False:
-        return dict_
-
-    dict_['display'] = True
-    dict_['dockable'] = _ui.isDockable()
-    dict_['floating'] = _ui.isFloating()
-    dict_['area'] = _ui.dockArea()
-    if dict_['dockable'] is True:
-        dock_dtrl = _ui.parent()
-        _pos = dock_dtrl.mapToGlobal(QtCore.QPoint(0, 0))
-    else:
-        _pos = _ui.pos()
-    _sz = _ui.geometry().size()
-    dict_['x'] = _pos.x()
-    dict_['y'] = _pos.y()
-    dict_['width'] = _sz.width()
-    dict_['height'] = _sz.height()
-    return dict_
+    app = QtWidgets.QApplication.instance()
+    ui = SiShelfWeight()
+    return ui
 
 
 def quit_app():
-    dict = get_show_repr()
+    dict = lib.get_show_repr()
     lib.make_save_dir()
     _f = open(lib.get_shelf_docking_filepath(), 'w')
     json.dump(dict, _f)
@@ -718,25 +630,6 @@ def restoration_docking_ui():
             height=_dict['height']
         )
 
-def get_floating_data():
-    path = lib.get_shelf_floating_filepath()
-    if os.path.isfile(path) is False:
-        return None
-    f = open(path, 'r')
-    dict_ = json.load(f)
-    return dict_
-
-
-def make_ui():
-    # 同名のウインドウが存在したら削除
-    ui = get_ui()
-    if ui is not None:
-        ui.close()
-
-    app = QtWidgets.QApplication.instance()
-    ui = SiShelfWeight()
-    return ui
-
 
 def popup():
     # マウス位置にポップアップ
@@ -747,7 +640,7 @@ def popup():
 def main(x=None, y=None):
     # 画面中央に表示
     ui = make_ui()
-    _floating = get_floating_data()
+    _floating = lib.load_floating_data()
     if _floating:
         width = _floating['width']
         height = _floating['height']
@@ -795,6 +688,7 @@ def main(x=None, y=None):
 
 
 def restoration_workspacecontrol():
+    # workspacecontrolの再現用
     ui = make_ui()
     ui_script = "import sishelf.shelf;sishelf.shelf.restoration_workspacecontrol()"
     # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる

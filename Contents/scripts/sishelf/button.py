@@ -172,6 +172,16 @@ def script_execute(code, source_type):
     cmds.cmdScrollFieldExecuter(t=code, opc=1, sln=1, exa=1, sourceType=source_type)
     cmds.deleteUI(window)
 
+
+def get_default():
+    path = lib.get_button_default_filepath()
+    data = ButtonData()
+    js = lib.not_escape_json_load(path)
+    if js is not None:
+        for k, v in js.items():
+            setattr(data, k, v)
+    return data
+
 #-----------------------------------------------------------------------------
 # EOF
 #-----------------------------------------------------------------------------

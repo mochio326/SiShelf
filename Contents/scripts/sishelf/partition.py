@@ -105,6 +105,16 @@ def create(parent, data):
     widget.move(data.position)
     return widget
 
+
+def get_default():
+    path = lib.get_partition_default_filepath()
+    data = PartitionData()
+    js = lib.not_escape_json_load(path)
+    if js is not None:
+        for k, v in js.items():
+            setattr(data, k, v)
+    return data
+
 #-----------------------------------------------------------------------------
 # EOF
 #-----------------------------------------------------------------------------

@@ -220,15 +220,6 @@ class MayaQWidgetDockableMixin2017(MayaQWidgetDockableMixin):
                     code = _CODE_TEMPLATE % (workspaceControlName, retain, uiScript)
                     cmds.workspaceControl(workspaceControlName, e=True, uiScript=code)
 
-                    # 2017のStateが残ってしまうバグに対応
-                    def deleteWSCtl(*a):
-                        if cmds.workspaceControl(workspaceControlName, ex=True):
-                            cmds.deleteUI(workspaceControlName)
-                        if cmds.workspaceControlState(workspaceControlName, ex=True):
-                            cmds.workspaceControlState(workspaceControlName, remove=True)
-                    if not retain:
-                        cmds.scriptJob(uid=(workspaceControlName, deleteWSCtl))
-
                 if closeCallback is not None:
                     cmds.workspaceControl(workspaceControlName, e=True, closeCommand=closeCallback)
 
