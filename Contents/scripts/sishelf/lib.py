@@ -5,6 +5,7 @@ import string
 import os
 import json
 import maya.cmds as cmds
+import re
 
 TITLE = "SiShelf"
 
@@ -166,6 +167,7 @@ def get_tab_data_path():
     path = os.path.join(get_save_dir(), 'parts.json')
     return path
 
+
 def make_save_dir():
     dir_ = get_save_dir()
     if os.path.isdir(dir_) is False:
@@ -182,6 +184,7 @@ def not_escape_json_dump(path, data):
     with open(path, 'w') as fh:
         fh.write(text.encode('utf-8'))
 
+
 def not_escape_json_load(path):
     if os.path.isfile(path) is False:
         return None
@@ -189,13 +192,21 @@ def not_escape_json_load(path):
         data = json.loads(fh.read(), "utf-8")
     return data
 
+
 def random_string(length, seq=string.digits + string.ascii_lowercase):
     sr = random.SystemRandom()
     return ''.join([sr.choice(seq) for i in xrange(length)])
 
+
 def maya_api_version():
     return int(cmds.about(api=True))
 
+
+def escape(s, quoted=u'\'"\\', escape=u'\\'):
+    return re.sub(
+            u'[%s]' % re.escape(quoted),
+            lambda mo: escape + mo.group(),
+            s)
 #-----------------------------------------------------------------------------
 # EOF
 #-----------------------------------------------------------------------------

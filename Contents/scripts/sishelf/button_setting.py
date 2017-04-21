@@ -2,6 +2,7 @@
 import os
 import maya.cmds as cmds
 import functools
+import copy
 
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from . import button
@@ -81,6 +82,9 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         super(SettingDialog, self).__init__(parent)
         self.setupUi(self)
         self.setWindowTitle("Button Setting")
+        # self.setProperty(" saveWindowPref", True)
+
+        self.menulist_widget = None
 
         # ダイアログのOK/キャンセルボタン
         self.buttonbox.accepted.connect(self.accept)
@@ -96,6 +100,7 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
 
         self._data_input(data)
         self._preview_button_drawing()
+        self._type_changed()
 
         self.button_maya_icon.setIcon(QtGui.QIcon(':/mayaIcon.png'))
 
@@ -112,7 +117,7 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.spinbox_icon_size.valueChanged.connect(func)
         self.spinbox_label_font_size.valueChanged.connect(func)
 
-        self.text_script_code.textChanged.connect(func)
+        #self.text_script_code.textChanged.connect(func)
         self.combo_script_language.currentIndexChanged.connect(func)
 
         self.button_maya_icon.clicked.connect(self._get_maya_icon)
@@ -127,6 +132,8 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
 
         self.checkbox_label_color.stateChanged.connect(func)
         self.button_label_color.clicked.connect(self._select_label_color)
+
+        self.combo_type.currentIndexChanged.connect(self._type_changed)
 
         # テキストエリアに日本語を入力中（IME未確定状態）にMayaがクラッシュする場合があった。
         # textChanged.connect をやめ、例えば focusOut や エンターキー押下を発火条件にすることで対応
@@ -150,9 +157,106 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.text_label.setToolTip('It will be reflected in the preview when focus is out.')
         self.text_tooltip.setToolTip('It will be reflected in the preview when focus is out.')
 
-    def _redraw_ui(self):
-        self.text_script_code.setReadOnly(self.checkbox_externalfile.isChecked())
+        self.text_script_code.focusOutEvent = _focus_out
+        self.text_script_code.keyPressEvent = functools.partial(_key_press, widget=self.text_script_code)
 
+
+    def _type_changed(self):
+        _parent = self.menulist_layout
+        _idx = self.combo_type.currentIndex()
+        _widget = self.menulist_widget
+        if _idx == 0:
+            if _widget is not None:
+                _parent.removeWidget(_widget)
+                _widget.setVisible(False)
+                _widget.setParent(None)
+                _widget.deleteLater()
+        else:
+            _ls = []
+            for _tmp in self.menu_data:
+                _ls.append(_tmp['label'])
+
+            self.menulist_model = QtCore.QStringListModel()
+            self.menulist_model.setStringList(_ls)
+            self.menulist_widget = QtWidgets.QListView()
+            self.menulist_widget.setModel(self.menulist_model)
+            self.menulist_widget.resize(70, self.menulist_widget.height())
+            self.menulist_widget.setMaximumSize(QtCore.QSize(200, 16777215))
+            _parent.addWidget(self.menulist_widget)
+            self.menulist_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+            self.menulist_widget.customContextMenuRequested.connect(self._menulist_context)
+            menulist_sel_model = self.menulist_widget.selectionModel()
+            menulist_sel_model.selectionChanged.connect(self._menulist_changed)
+            self.menulist_widget.setCurrentIndex(self.menulist_model.index(0))
+
+            self.dele = ListDelegate()
+            self.dele.changeValue.connect(self._menulist_change_value)
+            self.menulist_widget.setItemDelegate(self.dele)
+
+        self._apply_script_commands_data()
+
+    def _menulist_change_value(self, idx, value):
+        self.menu_data[idx]['label'] = value
+
+    def _menulist_changed(self, current, previous):
+        # _i = current.row()
+        self._apply_script_commands_data()
+
+    def _menulist_context(self):
+        _menu = QtWidgets.QMenu(self)
+        _menu.addAction('Add', self._menulist_add)
+        _menu.addAction('Delete', self._menulist_delete)
+        cursor = QtGui.QCursor.pos()
+        _menu.exec_(cursor)
+
+    def _menulist_add(self):
+        _dict = button.make_menu_button_dict()
+        _dict['label'] = 'menu button' + str(len(self.menu_data))
+        self.menu_data.append(_dict)
+        _ls = []
+        for _tmp in self.menu_data:
+            _ls.append(_tmp['label'])
+        self.menulist_model.setStringList(_ls)
+
+    def _menulist_delete(self):
+        _index = self.menulist_widget.currentIndex()
+        self.menulist_model.removeRow(_index.row())
+        del self.menu_data[_index.row()]
+
+    def _keep_script_commands_data(self):
+        _idx = self.combo_type.currentIndex()
+        # ノーマルボタン
+        if _idx == 0:
+            _d = self.normal_data
+        else:
+            _list_idx = self.menulist_widget.currentIndex()
+            _d = self.menu_data[_list_idx.row()]
+
+        _d['use_externalfile'] = self.checkbox_externalfile.isChecked()
+        _d['externalfile'] = self.line_externalfile.text()
+        _d['script_language'] = self.combo_script_language.currentText()
+        _d['code'] = self.text_script_code.toPlainText()
+
+    def _apply_script_commands_data(self):
+        _idx = self.combo_type.currentIndex()
+        # ノーマルボタン
+        if _idx == 0:
+            _d = self.normal_data
+        else:
+            _list_idx = self.menulist_widget.currentIndex()
+            if len(self.menu_data) == 0:
+                self._menulist_add()
+            _d = self.menu_data[_list_idx.row()]
+
+        self.text_script_code.setPlainText(_d['code'])
+        self.line_externalfile.setText(_d['externalfile'])
+        index = self.combo_script_language.findText(_d['script_language'])
+        self.combo_script_language.setCurrentIndex(index)
+        # checkbox_externalfileを最後に適用しないとline_externalfileが正常に反映されなかった。
+        self.checkbox_externalfile.setChecked(_d['use_externalfile'])
+
+
+    def _redraw_ui(self):
         #外部ファイルを指定されている場合は言語を強制変更
         if self.checkbox_externalfile.isChecked() is True:
             _path = self.line_externalfile.text()
@@ -165,7 +269,10 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
             self.combo_script_language.setCurrentIndex(index)
 
         self._preview_button_drawing()
+        self._keep_script_commands_data()
         self.repaint()
+
+        self.text_script_code.setReadOnly(self.checkbox_externalfile.isChecked())
 
     def _select_bgcolor(self):
         color = QtWidgets.QColorDialog.getColor(self.bgcolor, self)
@@ -185,7 +292,6 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.text_tooltip.setPlainText(data.tooltip)
         self.checkbox_tooltip.setChecked(data.bool_tooltip)
 
-        self.text_script_code.setPlainText(data.code)
         self.line_icon_file.setText(data.icon_file)
         self.spinbox_btn_position_x.setValue(data.position_x)
         self.spinbox_btn_position_y.setValue(data.position_y)
@@ -208,11 +314,22 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.checkbox_label_color.setChecked(data.use_label_color)
         self.label_color = data.label_color
 
-        self.checkbox_externalfile.setChecked(data.use_externalfile)
-        self.line_externalfile.setText(data.externalfile)
+        #self.text_script_code.setPlainText(data.code)
+        #self.checkbox_externalfile.setChecked(data.use_externalfile)
+        #self.line_externalfile.setText(data.externalfile)
+        #index = self.combo_script_language.findText(data.script_language)
+        #self.combo_script_language.setCurrentIndex(index)
 
-        index = self.combo_script_language.findText(data.script_language)
-        self.combo_script_language.setCurrentIndex(index)
+        self.combo_type.setCurrentIndex(data.type_)
+        self.menu_data = copy.deepcopy(data.menu_data)
+
+        # ノーマルボタン用のデータを保持
+        _dict = button.make_menu_button_dict()
+        _dict['code'] = data.code
+        _dict['use_externalfile'] = data.use_externalfile
+        _dict['externalfile'] = data.externalfile
+        _dict['script_language'] = data.script_language
+        self.normal_data = _dict
 
     def _replace_widget(self, parent, old_widget, new_widget):
         parent.removeWidget(old_widget)
@@ -287,10 +404,18 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         data.use_label_color = self.checkbox_label_color.isChecked()
         data.label_color = self.label_color
 
-        data.use_externalfile = self.checkbox_externalfile.isChecked()
-        data.externalfile = self.line_externalfile.text()
-        data.script_language = self.combo_script_language.currentText()
-        data.code = self.text_script_code.toPlainText()
+        # data.use_externalfile = self.checkbox_externalfile.isChecked()
+        # data.externalfile = self.line_externalfile.text()
+        # data.script_language = self.combo_script_language.currentText()
+        # data.code = self.text_script_code.toPlainText()
+
+        data.use_externalfile = self.normal_data['use_externalfile']
+        data.externalfile =self.normal_data['externalfile']
+        data.script_language = self.normal_data['script_language']
+        data.code = self.normal_data['code']
+
+        data.type_ = self.combo_type.currentIndex()
+        data.menu_data = copy.deepcopy(self.menu_data)
 
         return data
 
@@ -302,7 +427,35 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         dialog = SettingDialog(parent, data)
         result = dialog.exec_()  # ダイアログを開く
         data = dialog.get_button_data_instance()
+        dialog.normal_data = None
         return (data, result == QtWidgets.QDialog.Accepted)
+
+
+class ListDelegate(QtWidgets.QItemDelegate):
+    changeValue = QtCore.Signal(int, str)
+
+    def createEditor(self, parent, option, index):
+        # 編集する時に呼ばれるWidgetを設定
+        editor = QtWidgets.QLineEdit(parent)
+        return editor
+
+    def setEditorData(self, LineEdit, index):
+        # 編集されたときに呼ばれ、セットされた値をWidgetにセットする?
+        value = index.model().data(index, QtCore.Qt.EditRole)
+        LineEdit.setText(value)
+
+    def setModelData(self, LineEdit, model, index):
+        # ModelにSpinboxの編集した値をセットする?
+
+        value = LineEdit.text()
+        # 編集情報をSignalで発信する
+        self.changeValue.emit(index.row(), value)
+        model.setData(index, value, QtCore.Qt.EditRole)
+
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect)
+
+
 
 
 class DccIconViewer(QtWidgets.QDialog):

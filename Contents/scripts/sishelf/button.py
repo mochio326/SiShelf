@@ -44,13 +44,50 @@ class ButtonWidget(QtWidgets.QToolButton):
 
             event.pos().x(), event.pos().y()
 
-            print('Run : ' + self.data.label)
-            if self.data.use_externalfile is True:
-                code = readfile(self.data.externalfile)
+            if self.data.type_ == 0:
+                print('Run : ' + self.data.label)
+                if self.data.use_externalfile is True:
+                    code = readfile(self.data.externalfile)
+                else:
+                    code = self.data.code
+                source_type = self.data.script_language.lower()
+                script_execute(code, source_type)
             else:
-                code = self.data.code
-            source_type = self.data.script_language.lower()
-            script_execute(code, source_type)
+                self._context_menu()
+
+    def _context_menu(self):
+        # 実行関数を文字列から動的生成
+        _func = '''
+def _f():
+    if {0} is True:
+        code = readfile(r'{1}')
+    else:
+        code = '{2}'
+    source_type = '{3}'
+    script_execute(code, source_type)
+        '''
+
+        _menu = QtWidgets.QMenu()
+        # 項目名と実行する関数の設定
+
+        for i in range(len(self.data.menu_data)):
+            _d = self.data.menu_data[i]
+
+            if _d['label'].count('-') > 4:
+                _menu.addSeparator()
+                continue
+
+            exec(_func.format(
+                _d['use_externalfile'],
+                _d['externalfile'],
+                lib.escape(_d['code']),
+                _d['script_language'].lower()
+            ))
+            _menu.addAction(_d['label'], _f)
+
+        # マウス位置に出現
+        cursor = QtGui.QCursor.pos()
+        _menu.exec_(cursor)
 
 
 class ButtonData(lib.PartsData):
@@ -62,6 +99,7 @@ class ButtonData(lib.PartsData):
         self.bool_tooltip = True
         self.code = code
         self.script_language = 'Python'
+        self.type_ = 0  # 0:def 1:MenuButton
         self.size_flag = False
         self.icon_file = ':/polySphere.png'
 
@@ -77,6 +115,7 @@ class ButtonData(lib.PartsData):
         self.label_color = '#eeeeee'
         self.use_label_color = False
 
+        self.menu_data = []
 
         if path != '':
             self.use_externalfile = True
@@ -181,6 +220,15 @@ def get_default():
         for k, v in js.items():
             setattr(data, k, v)
     return data
+
+
+def make_menu_button_dict():
+    return {'label':' test001',
+    'use_externalfile':False,
+    'externalfile':'',
+    'code':'',
+    'script_language':'Python'
+    }
 
 #-----------------------------------------------------------------------------
 # EOF
