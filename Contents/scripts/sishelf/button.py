@@ -77,6 +77,7 @@ def _f():
                 _menu.addSeparator()
                 continue
 
+            # codeは文字をエスケープしておかないとエラーになるので注意
             exec(_func.format(
                 _d['use_externalfile'],
                 _d['externalfile'],
