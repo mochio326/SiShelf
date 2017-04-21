@@ -309,7 +309,8 @@ class DccIconViewer(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(DccIconViewer, self).__init__(parent)
-        self.view = QtWidgets.QTreeView()
+        self.view = QtWidgets.QListView()
+        self.view.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
         # ダイアログのOK/キャンセルボタンを用意
         btns = QtWidgets.QDialogButtonBox(
@@ -328,11 +329,7 @@ class DccIconViewer(QtWidgets.QDialog):
         self.view.setModel(self.model)
         self.set_item()
 
-        self.view.hideColumn(3)
-        self.view.hideColumn(2)
-        self.view.hideColumn(1)
         self.view.setAlternatingRowColors(True)
-        self.view.setSortingEnabled(True)
         self.resize(300, 500)
 
     def set_item(self):
