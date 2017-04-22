@@ -31,6 +31,7 @@ else:
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     URL = "https://github.com/mochio326/SiShelf"
+    VAR = '1.4.0'
     PEN_WIDTH = 1  # 矩形の枠の太さ
 
     def __init__(self, parent=None):
@@ -99,11 +100,20 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         _menu.addSeparator()
         _menu.addAction('Option', self._option)
+        _menu.addAction('Version information', self._info)
 
         self._select_cursor_pos_parts()
         # マウス位置に出現
         cursor = QtGui.QCursor.pos()
         _menu.exec_(cursor)
+
+    def _info(self):
+        _status = QtWidgets.QMessageBox.information(
+            self, 'Version information',
+            'SiShelf ' + self.VAR,
+            QtWidgets.QMessageBox.Ok,
+            QtWidgets.QMessageBox.Ok
+        )
 
     def _option(self):
         self.shelf_option = shelf_option.OptionDialog.open(self)
