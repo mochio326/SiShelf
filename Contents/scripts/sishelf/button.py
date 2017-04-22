@@ -73,7 +73,7 @@ def _f():
         for i in range(len(self.data.menu_data)):
             _d = self.data.menu_data[i]
 
-            if _d['label'].count('-') > 4:
+            if _d['label'].count('----') >= 1:
                 _menu.addSeparator()
                 continue
 

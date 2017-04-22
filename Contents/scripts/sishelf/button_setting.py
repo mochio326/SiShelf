@@ -199,11 +199,12 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.menu_data[idx]['label'] = value
 
     def _menulist_changed(self, current, previous):
-        # _i = current.row()
         self._apply_script_commands_data()
 
     def _menulist_context(self):
         _menu = QtWidgets.QMenu(self)
+        _menu.addAction('Up', self._menulist_up)
+        _menu.addAction('Down', self._menulist_down)
         _menu.addAction('Add', self._menulist_add)
         _menu.addAction('Delete', self._menulist_delete)
         cursor = QtGui.QCursor.pos()
@@ -213,22 +214,47 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         _dict = button.make_menu_button_dict()
         _dict['label'] = 'menu button' + str(len(self.menu_data))
         self.menu_data.append(_dict)
+        self._menulist_redraw()
+
+    def _menulist_redraw(self):
         _ls = []
         for _tmp in self.menu_data:
             _ls.append(_tmp['label'])
         self.menulist_model.setStringList(_ls)
 
+    def _menulist_up(self):
+        _index = self.menulist_widget.currentIndex()
+        if _index.row() == 0 or _index is QtCore.QModelIndex():
+            return
+        _i = _index.row()
+        self.menu_data[_i - 1], self.menu_data[_i] = self.menu_data[_i], self.menu_data[_i - 1]
+        self._menulist_redraw()
+        _sel = self.menulist_model.createIndex(_i - 1, 0)
+        self.menulist_widget.setCurrentIndex(_sel)
+
+    def _menulist_down(self):
+        _index = self.menulist_widget.currentIndex()
+        if _index.row() == len(self.menu_data)-1 or _index is QtCore.QModelIndex():
+            return
+        _i = _index.row()
+        self.menu_data[_i + 1], self.menu_data[_i] = self.menu_data[_i], self.menu_data[_i + 1]
+        self._menulist_redraw()
+        _sel = self.menulist_model.createIndex(_i + 1, 0)
+        self.menulist_widget.setCurrentIndex(_sel)
+
+
     def _menulist_delete(self):
         _index = self.menulist_widget.currentIndex()
         self.menulist_model.removeRow(_index.row())
         del self.menu_data[_index.row()]
+        if len(self.menu_data) == 0:
+            self.combo_type.setCurrentIndex(0)
 
     def _keep_script_commands_data(self):
         _idx = self.combo_type.currentIndex()
-        # ノーマルボタン
-        if _idx == 0:
+        if _idx == 0:  # ノーマルボタン
             _d = self.normal_data
-        else:
+        else:  # メニューボタン
             _list_idx = self.menulist_widget.currentIndex()
             _d = self.menu_data[_list_idx.row()]
 
@@ -239,10 +265,9 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
 
     def _apply_script_commands_data(self):
         _idx = self.combo_type.currentIndex()
-        # ノーマルボタン
-        if _idx == 0:
+        if _idx == 0:  # ノーマルボタン
             _d = self.normal_data
-        else:
+        else:  # メニューボタン
             _list_idx = self.menulist_widget.currentIndex()
             if len(self.menu_data) == 0:
                 self._menulist_add()
@@ -254,7 +279,6 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.combo_script_language.setCurrentIndex(index)
         # checkbox_externalfileを最後に適用しないとline_externalfileが正常に反映されなかった。
         self.checkbox_externalfile.setChecked(_d['use_externalfile'])
-
 
     def _redraw_ui(self):
         #外部ファイルを指定されている場合は言語を強制変更
@@ -313,12 +337,6 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
 
         self.checkbox_label_color.setChecked(data.use_label_color)
         self.label_color = data.label_color
-
-        #self.text_script_code.setPlainText(data.code)
-        #self.checkbox_externalfile.setChecked(data.use_externalfile)
-        #self.line_externalfile.setText(data.externalfile)
-        #index = self.combo_script_language.findText(data.script_language)
-        #self.combo_script_language.setCurrentIndex(index)
 
         self.combo_type.setCurrentIndex(data.type_)
         self.menu_data = copy.deepcopy(data.menu_data)
@@ -404,11 +422,6 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         data.use_label_color = self.checkbox_label_color.isChecked()
         data.label_color = self.label_color
 
-        # data.use_externalfile = self.checkbox_externalfile.isChecked()
-        # data.externalfile = self.line_externalfile.text()
-        # data.script_language = self.combo_script_language.currentText()
-        # data.code = self.text_script_code.toPlainText()
-
         data.use_externalfile = self.normal_data['use_externalfile']
         data.externalfile =self.normal_data['externalfile']
         data.script_language = self.normal_data['script_language']
@@ -445,8 +458,6 @@ class ListDelegate(QtWidgets.QItemDelegate):
         LineEdit.setText(value)
 
     def setModelData(self, LineEdit, model, index):
-        # ModelにSpinboxの編集した値をセットする?
-
         value = LineEdit.text()
         # 編集情報をSignalで発信する
         self.changeValue.emit(index.row(), value)
@@ -454,8 +465,6 @@ class ListDelegate(QtWidgets.QItemDelegate):
 
     def updateEditorGeometry(self, editor, option, index):
         editor.setGeometry(option.rect)
-
-
 
 
 class DccIconViewer(QtWidgets.QDialog):
@@ -506,6 +515,7 @@ class DccIconViewer(QtWidgets.QDialog):
         result = dialog.exec_()  # ダイアログを開く
         name = dialog.icon_name()  # キャンバスサイズを取得
         return (name, result == QtWidgets.QDialog.Accepted)
+
 
 # #################################################################################################
 # Maya依存の部分
