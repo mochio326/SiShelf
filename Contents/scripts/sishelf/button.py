@@ -51,42 +51,14 @@ class ButtonWidget(QtWidgets.QToolButton):
                 else:
                     code = self.data.code
                 source_type = self.data.script_language.lower()
-                script_execute(code, source_type)
+                lib.script_execute(code, source_type)
             else:
                 self._context_menu()
 
     def _context_menu(self):
-        # 実行関数を文字列から動的生成
-        _func = '''
-def _f():
-    if {0} is True:
-        code = readfile(r'{1}')
-    else:
-        code = '{2}'
-    source_type = '{3}'
-    script_execute(code, source_type)
-        '''
-
         _menu = QtWidgets.QMenu()
         # 項目名と実行する関数の設定
-
-        for i in range(len(self.data.menu_data)):
-            _d = self.data.menu_data[i]
-
-            if _d['label'].count('----') >= 1:
-                _menu.addSeparator()
-                continue
-
-            # codeは文字をエスケープしておかないとエラーになるので注意
-            exec(_func.format(
-                _d['use_externalfile'],
-                _d['externalfile'],
-                lib.escape(_d['code']),
-                _d['script_language'].lower()
-            ))
-            _menu.addAction(_d['label'], _f)
-
-        # マウス位置に出現
+        menu_data_context(_menu, self.data.menu_data)
         cursor = QtGui.QCursor.pos()
         _menu.exec_(cursor)
 
@@ -200,19 +172,6 @@ def readfile(path):
     return t
 
 
-def script_execute(code, source_type):
-    '''
-    maya内でスクリプトを実行する
-    :param code: string
-    :param source_type: 'mel' or 'python'
-    :return:
-    '''
-    window = cmds.window()
-    cmds.columnLayout()
-    cmds.cmdScrollFieldExecuter(t=code, opc=1, sln=1, exa=1, sourceType=source_type)
-    cmds.deleteUI(window)
-
-
 def get_default():
     path = lib.get_button_default_filepath()
     data = ButtonData()
@@ -231,6 +190,46 @@ def make_menu_button_dict():
     'script_language':'Python'
     }
 
+
+def menu_data_context(menu, data):
+    for i in range(len(data)):
+        _d = data[i]
+
+        if _d['label'].count('----') >= 1:
+            menu.addSeparator()
+            continue
+
+        # codeは文字をエスケープしておかないとエラーになるので注意
+        exec (lib._CONTEXT_FUNC.format(
+            _d['use_externalfile'],
+            _d['externalfile'],
+            lib.escape(_d['code']),
+            _d['script_language'].lower()
+        ))
+        menu.addAction(_d['label'], _f)
+
+
+def normal_data_context(menu, data):
+        # codeは文字をエスケープしておかないとエラーになるので注意
+        exec (lib._CONTEXT_FUNC.format(
+            data.use_externalfile,
+            data.externalfile,
+            lib.escape(data.code),
+            data.script_language.lower()
+        ))
+
+        _act = menu.addAction(data.label, _f)
+        if data.use_icon:
+            _act.setIcon(data.icon)
+        '''
+        if data.bool_tooltip is True:
+            if data.use_externalfile is True:
+                _act.setToolTip(data.externalfile)
+            else:
+                _act.setToolTip(data.code)
+        else:
+            _act.setToolTip(data.tooltip)
+        '''
 #-----------------------------------------------------------------------------
 # EOF
 #-----------------------------------------------------------------------------

@@ -36,6 +36,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def __init__(self, parent=None):
         super(SiShelfWeight, self).__init__(parent)
+        print self.parent
         #メモリ管理的おまじない
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)

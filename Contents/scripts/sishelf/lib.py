@@ -207,6 +207,33 @@ def escape(s, quoted=u'\'"\\', escape=u'\\'):
             u'[%s]' % re.escape(quoted),
             lambda mo: escape + mo.group(),
             s)
+
+
+def script_execute(code, source_type):
+    '''
+    maya内でスクリプトを実行する
+    :param code: string
+    :param source_type: 'mel' or 'python'
+    :return:
+    '''
+    window = cmds.window()
+    cmds.columnLayout()
+    cmds.cmdScrollFieldExecuter(t=code, opc=1, sln=1, exa=1, sourceType=source_type)
+    cmds.deleteUI(window)
+
+
+# 実行関数を文字列から動的生成用文字列
+_CONTEXT_FUNC = '''
+def _f():
+    if {0} is True:
+        code = readfile(r'{1}')
+    else:
+        code = '{2}'
+    source_type = '{3}'
+    lib.script_execute(code, source_type)
+'''
+
+
 #-----------------------------------------------------------------------------
 # EOF
 #-----------------------------------------------------------------------------

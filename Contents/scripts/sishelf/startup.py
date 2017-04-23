@@ -48,6 +48,18 @@ def menu_setup():
             ''')
     )
 
+    cmds.menuItem(
+        'sishelf_xpop',
+        label=jpn('SiShelf XPOP'),
+        annotation="open SiShelf XPOP",
+        parent='sishelf_folder',
+        echoCommand=True,
+        command=dedent(
+            '''
+                import sishelf.xpop
+                sishelf.xpop.main()
+            ''')
+    )
 
 def register_runtime_command(opt):
 
@@ -102,6 +114,14 @@ def register_sishelf_runtime_command():
     }
     register_runtime_command(opts)
 
+    opts = {
+        'annotation':      "SiShelf XPOP",
+        'category':        "SiShelf",
+        'commandLanguage': "python",
+        'command':         r'''"import sishelf.xpop as xp\r\nxp.main() "''',
+        'cmd_name':        "SiShelfXPOP"
+    }
+    register_runtime_command(opts)
 
 def register_events():
     # Maya Save shelf state on exit
