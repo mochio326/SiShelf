@@ -55,16 +55,16 @@ def button_css(buttons, css):
     return css
 
 
-def get_ui():
+def get_ui(name, weight_type):
     all_ui = {w.objectName(): w for w in QtWidgets.QApplication.allWidgets()}
     ui = []
     for k, v in all_ui.items():
-        if TITLE not in k:
+        if name not in k:
             continue
         # 2017だとインスタンスの型をチェックしないと別の物まで入ってきてしまうらしい
         # 2016以前だと比較すると通らなくなる…orz
         if maya_api_version() >= 201700:
-            if v.__class__.__name__ == 'SiShelfWeight':
+            if v.__class__.__name__ == weight_type:
                 return v
         else:
             return v
@@ -110,7 +110,7 @@ def get_show_repr(vis_judgment=True):
     dict_['width'] = 400
     dict_['height'] = 150
 
-    _ui = get_ui()
+    _ui = get_ui(TITLE, 'SiShelfWeight')
     if _ui is None:
         return dict_
 

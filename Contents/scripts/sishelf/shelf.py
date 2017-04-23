@@ -48,15 +48,15 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         self.load_tab_data()
 
-        self.origin = None
-        self.band = None
-        self.selected = []
+        self._origin = None
+        self._band = None
+        self._selected = []
         self._floating_save = False
-        self.clipboard = None
-        self.context_pos = QtCore.QPoint()
-        self.cut_flag = False
-        self.parts_moving = False
-        self.shelf_option = shelf_option.OptionData()
+        self._clipboard = None
+        self._context_pos = QtCore.QPoint()
+        self._cut_flag = False
+        self._parts_moving = False
+        self._shelf_option = shelf_option.OptionData()
 
         self._set_stylesheet()
 
@@ -66,7 +66,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.tabBar().tabMoved.connect(self._tab_moved)
 
     def _current_tab_change(self):
-        self.selected = []
+        self._selected = []
         self._set_stylesheet()
         self.update()
         self.save_tab_data()
@@ -117,35 +117,35 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         )
 
     def _option(self):
-        self.shelf_option = shelf_option.OptionDialog.open(self)
+        self._shelf_option = shelf_option.OptionDialog.open(self)
         self._set_stylesheet()
 
     def _copy(self):
-        self.clipboard = copy.deepcopy(self.selected[0].data)
+        self._clipboard = copy.deepcopy(self._selected[0].data)
 
     def _paste(self):
-        if self.clipboard is None:
+        if self._clipboard is None:
             return
-        data = copy.deepcopy(self.clipboard)
-        data.position = self.context_pos
+        data = copy.deepcopy(self._clipboard)
+        data.position = self._context_pos
 
         if isinstance(data, button.ButtonData):
             button.create(self.currentWidget(), data)
         elif isinstance(data, partition.PartitionData):
             partition.create(self.currentWidget(), data)
 
-        self.selected = []
+        self._selected = []
         self.repaint()
         self.save_tab_data()
         # カットの場合は貼り付けは一度だけ
-        if self.cut_flag is True:
-            self.clipboard = None
-            self.cut_flag = False
+        if self._cut_flag is True:
+            self._clipboard = None
+            self._cut_flag = False
 
     def _cut(self):
         self._copy()
-        self.delete_parts(self.selected[0])
-        self.cut_flag = True
+        self.delete_parts(self._selected[0])
+        self._cut_flag = True
 
     def _button_default_setting(self):
         data = button.get_default()
@@ -210,16 +210,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.save_tab_data()
 
     def _delete(self):
-        for s in self.selected:
+        for s in self._selected:
             self.delete_parts(s)
-        self.selected = []
+        self._selected = []
         self.save_tab_data()
 
     def _edit(self):
-        if len(self.selected) != 1:
+        if len(self._selected) != 1:
             print('Only standalone selection is supported.')
             return
-        parts = self.selected[0]
+        parts = self._selected[0]
 
         if isinstance(parts.data, button.ButtonData):
             _re = self.create_button(parts.data)
@@ -234,13 +234,14 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _add_button(self):
         data = button.get_default()
-        data.position = self.context_pos
+        data.position = self._context_pos
         self.create_button(data)
         self.save_tab_data()
+        self._set_stylesheet()
 
     def _add_partition(self):
         data = partition.get_default()
-        data.position = self.context_pos
+        data.position = self._context_pos
         self.create_partition(data)
         self.save_tab_data()
 
@@ -260,7 +261,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             print("Cancel.")
             return None
         data_obj.create(self.currentWidget(), data)
-        self.selected = []
+        self._selected = []
         self.repaint()
         return data
 
@@ -375,25 +376,25 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
 
-            if len(self.selected) > 1:
+            if len(self._selected) > 1:
                 # 複数選択されていたらまとめて移動を優先
                 self._selected_parts_move(event.pos())
             else:
                 self._parts_move(event.source(), event.pos())
                 self.save_tab_data()
-                self.origin = QtCore.QPoint()
+                self._origin = QtCore.QPoint()
 
             # よくわからん
             event.setDropAction(QtCore.Qt.MoveAction)
             event.accept()
 
-        self.parts_moving = False
+        self._parts_moving = False
         self.repaint()
 
     def dragMoveEvent(self, event):
         # パーツを移動中の描画更新
-        if len(self.selected) > 0:
-            self.parts_moving = True
+        if len(self._selected) > 0:
+            self._parts_moving = True
             self._selected_parts_move(event.pos(), False, False)
         self.repaint()
 
@@ -411,58 +412,58 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             event.ignore()
 
     def mousePressEvent(self, event):
-        self.origin = event.pos()
+        self._origin = event.pos()
         if event.button() == QtCore.Qt.LeftButton:
-            self.band = QtCore.QRect()
-            self.parts_moving = False
+            self._band = QtCore.QRect()
+            self._parts_moving = False
 
         if event.button() == QtCore.Qt.MiddleButton:
             self._select_cursor_pos_parts()
-            if len(self.selected) <= 1:
+            if len(self._selected) <= 1:
                 self._set_stylesheet()
         self.repaint()
 
     def mouseMoveEvent(self, event):
-        if self.band is not None:
-            self.band = QtCore.QRect(self.origin, event.pos())
+        if self._band is not None:
+            self._band = QtCore.QRect(self._origin, event.pos())
         else:
             # パーツを移動中の描画更新
-            if len(self.selected) > 0:
-                self.parts_moving = True
+            if len(self._selected) > 0:
+                self._parts_moving = True
                 self._selected_parts_move(event.pos(), False, False)
 
         self.repaint()
 
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
-            if not self.origin:
-                self.origin = event.pos()
-            rect = QtCore.QRect(self.origin, event.pos()).normalized()
+            if not self._origin:
+                self._origin = event.pos()
+            rect = QtCore.QRect(self._origin, event.pos()).normalized()
             self._get_parts_in_rectangle(rect)
             self._set_stylesheet()
-            self.origin = QtCore.QPoint()
-            self.band = None
+            self._origin = QtCore.QPoint()
+            self._band = None
 
         # 選択中のパーツを移動
         if event.button() == QtCore.Qt.MiddleButton:
             self._selected_parts_move(event.pos())
 
-        self.parts_moving = False
+        self._parts_moving = False
         self.repaint()
 
     def paintEvent(self, event):
         # 矩形範囲の描画
-        if self.band is not None:
+        if self._band is not None:
             painter = QtGui.QPainter(self)
             color = QtGui.QColor(255, 255, 255, 125)
             pen = QtGui.QPen(color, self.PEN_WIDTH)
             painter.setPen(pen)
-            painter.drawRect(self.band)
+            painter.drawRect(self._band)
             painter.restore()
         # ガイドグリッドの描画
-        if self.parts_moving is True \
-                and self.shelf_option.snap_active is True\
-                and self.shelf_option.snap_grid is True:
+        if self._parts_moving is True \
+                and self._shelf_option.snap_active is True\
+                and self._shelf_option.snap_grid is True:
             self._draw_snap_gide()
 
     def closeEvent(self, event):
@@ -480,16 +481,16 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # -----------------------
     def _selected_parts_move(self, after_pos, save=True, data_pos_update=True):
         # 選択中のパーツを移動
-        if len(self.selected) > 0:
-            for p in self.selected:
+        if len(self._selected) > 0:
+            for p in self._selected:
                 self._parts_move(p, after_pos, data_pos_update)
             if save is True:
-                self.origin = QtCore.QPoint()
+                self._origin = QtCore.QPoint()
                 self.save_tab_data()
 
     def _parts_move(self, parts, after_pos, data_pos_update=True):
         # ドラッグ中に移動した相対位置を加算
-        _rect = QtCore.QRect(self.origin, after_pos)
+        _rect = QtCore.QRect(self._origin, after_pos)
         _x = parts.data.position_x + _rect.width()
         _y = parts.data.position_y + _rect.height()
         if _x < 0:
@@ -497,9 +498,9 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _y < 0:
             _y = 0
 
-        if self.shelf_option.snap_active is True:
-            _x = int(_x / self.shelf_option.snap_width) * self.shelf_option.snap_width
-            _y = int(_y / self.shelf_option.snap_height) * self.shelf_option.snap_height
+        if self._shelf_option.snap_active is True:
+            _x = int(_x / self._shelf_option.snap_width) * self._shelf_option.snap_width
+            _y = int(_y / self._shelf_option.snap_height) * self._shelf_option.snap_height
 
         _position = QtCore.QPoint(_x, _y)
         parts.move(_position)
@@ -508,7 +509,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             parts.data.position_y = _y
 
     def _get_parts_in_rectangle(self, rect):
-        self.selected = []
+        self._selected = []
         chidren = []
         chidren.extend(self.currentWidget().findChildren(button.ButtonWidget))
         chidren.extend(self.currentWidget().findChildren(partition.PartitionWidget))
@@ -517,7 +518,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             # 矩形内に位置しているかを判定
             if rect.intersects(self._get_parts_absolute_geometry(child)) is False:
                 continue
-            self.selected.append(child)
+            self._selected.append(child)
 
     def _get_parts_absolute_geometry(self, parts):
         '''
@@ -534,8 +535,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         # タブ
         css += 'QTabBar::tab { ' \
-                'height: ' + str(self.shelf_option.tab_height) + 'px;' \
-                'font-size: ' + str(self.shelf_option.tab_label_size) + 'pt;' \
+                'height: ' + str(self._shelf_option.tab_height) + 'px;' \
+                'font-size: ' + str(self._shelf_option.tab_label_size) + 'pt;' \
                 '}'
 
         # ボタン
@@ -543,7 +544,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         css = lib.button_css(buttons, css)
 
         # 選択中のパーツを誇張
-        for s in self.selected:
+        for s in self._selected:
             css += '#' + s.objectName() + '{'
             if isinstance(s.data, button.ButtonData):
                 if s.data.use_bgcolor is True:
@@ -560,22 +561,22 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _ui = lib.get_show_repr()
         pos = QtCore.QPoint(cursor.x() - _ui['x'], cursor.y() - _ui['y'])
         # タブバーの高さを考慮 （ただ実際のタブの大きさと数ピクセルずれてる気がする
-        self.context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
+        self._context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
         # パーツが矩形で選択されていなければマウス位置の下のボタンを選択しておく
         # 1個選択状態の場合は選択し直した方が直感的な気がする
-        if len(self.selected) <= 1:
-            _l = len(self.selected)
-            _s = self.selected
+        if len(self._selected) <= 1:
+            _l = len(self._selected)
+            _s = self._selected
 
             rect = QtCore.QRect(pos, pos)
             # ドッキングしてる状態だとタブの高さを考慮したほうがいい！？なんじゃこの挙動は…
             if self.isFloating() is False and self.dockArea() is not None:
-                rect = QtCore.QRect(self.context_pos, self.context_pos)
+                rect = QtCore.QRect(self._context_pos, self._context_pos)
             self._get_parts_in_rectangle(rect)
-            if len(self.selected) > 1:
-                self.selected = [self.selected[0]]
-            if _l == 1 and len(self.selected) == 0:
-                self.selected = _s
+            if len(self._selected) > 1:
+                self._selected = [self._selected[0]]
+            if _l == 1 and len(self._selected) == 0:
+                self._selected = _s
             self._set_stylesheet()
             self.repaint()
 
@@ -587,8 +588,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         pen.setStyle(QtCore.Qt.DashDotLine)
         painter.setPen(pen)
 
-        snap_unit_x = self.shelf_option.snap_width
-        snap_unit_y = self.shelf_option.snap_height
+        snap_unit_x = self._shelf_option.snap_width
+        snap_unit_y = self._shelf_option.snap_height
         _tab_h = self.sizeHint().height() - 4
 
         # 横線
@@ -608,7 +609,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
 def make_ui():
     # 同名のウインドウが存在したら削除
-    ui = lib.get_ui()
+    ui = lib.get_ui(lib.TITLE, 'SiShelfWeight')
     if ui is not None:
         ui.close()
 
