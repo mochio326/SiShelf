@@ -1,4 +1,4 @@
-# SiShelf [Var.1.5]
+# SiShelf [Var.1.5.1]
 
 ![SiShelf](/images/01.png)
 
@@ -39,26 +39,6 @@ MayaをCドライブ以外にインストールしている場合でもSiShelf�
 
 ![SiShelf](/images/09.png)
 
-コードから実行する場合は以下の通りです。（上記コードをスクリプトエディタ(Pythonタブ)に貼り付けて実行 ）
-
-+ ウインドウが画面中央に表示されます。
-```python
-   import sishelf.shelf
-   sishelf.shelf.main()
-```
-
-+ マウスの位置にポップアップ
-```python
-   import sishelf.shelf  
-   sishelf.shelf.popup()  
-```
-
-
-+ XPOPモード
-```python
-   import sishelf.xpop  
-   sishelf.xpop.main()  
-```
 
 ## 使い方
 
@@ -152,6 +132,12 @@ SiShelfはMayaのウインドウにドッキングすることができます。
 
 マウス右クリックでコンテキストメニューを表示できます。
 
+メニュー     | 概要
+-----------| ------------
+ Add button | ボタンを追加します
+-----------| ------------
+Add partition | 仕切り線を追加します。
+
 + Add button  
 　→ ボタンを追加します。
 + Add partition  
@@ -189,6 +175,31 @@ SiShelfはMayaのウインドウにドッキングすることができます。
 データは `C:\Users\ユーザー名\Documents\maya` にjsonファイルとして作成れます。  
 jsonファイルはテキストファイルなので、やろうと思えば内容を変更して保存することで手動での書き換えも可能です。  
 複数バージョンのMayaからも同一データが参照されます。現状はバージョン違いによる参照先変更機能はありません。
+
+
+## コードから実行
+
+コードから実行する場合は以下の通りです。（上記コードをスクリプトエディタ(Pythonタブ)に貼り付けて実行 ）
+
++ ウインドウが画面中央に表示されます。
+```python
+   import sishelf.shelf
+   sishelf.shelf.main()
+```
+
+
++ マウスの位置にポップアップ
+```python
+   import sishelf.shelf  
+   sishelf.shelf.popup()  
+```
+
+
++ XPOPモード
+```python
+   import sishelf.xpop  
+   sishelf.xpop.main()  
+```
 
 
 ## 動作確認
