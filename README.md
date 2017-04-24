@@ -206,6 +206,9 @@ edit_lock | boolean | False | 編集機能をロックするかどうか(Trueの
 tab | string | None | XPOPの第１階層を指定のタブの内容にする（指定されない場合はタブ名がXPOPの第１階層）
 load_file | string  | None |  読み込みデータのファイルパスを指定
 
+
+![SiShelf](/images/13.png)
+
 ## 動作確認
 
 MAYA2014：バグで立ち上がらない
