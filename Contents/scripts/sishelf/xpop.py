@@ -6,7 +6,7 @@ from . import button
 TITLE = 'SiShelfXPOP'
 
 
-def main(tab=None):
+def main(tab=None, load_file=None):
     '''
 
     :param tab: タブ名を文字列で指定。
@@ -27,7 +27,11 @@ def main(tab=None):
     _menu.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
     _menu.setObjectName(TITLE)
 
-    path = lib.get_tab_data_path()
+    if load_file is None:
+        path = lib.get_tab_data_path()
+    else:
+        path = load_file
+
     save_data = lib.not_escape_json_load(path)
     if save_data is None:
         return

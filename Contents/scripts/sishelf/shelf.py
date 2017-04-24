@@ -34,17 +34,21 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     VAR = '1.5.1'
     PEN_WIDTH = 1  # 矩形の枠の太さ
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, load_file=None, edit_lock=False):
         super(SiShelfWeight, self).__init__(parent)
-        print self.parent
         #メモリ管理的おまじない
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         # オブジェクト名とタイトルの変更
         self.setObjectName(lib.TITLE)
         self.setWindowTitle(lib.TITLE)
-        self.setMovable(True)
-        self.setAcceptDrops(True)
+
+        self.load_file = load_file
+        self.edit_lock = edit_lock
+
+        if self.edit_lock is False:
+            self.setMovable(True)
+            self.setAcceptDrops(True)
 
         self.load_tab_data()
 
@@ -80,27 +84,28 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def _context_menu(self, event):
         _menu = QtWidgets.QMenu()
         # 項目名と実行する関数の設定
-        _menu.addAction('Add button', self._add_button)
-        _menu.addAction('Add partition', self._add_partition)
-        _menu.addSeparator()
-        _menu.addAction('Edit', self._edit)
-        _menu.addAction('Delete', self._delete)
-        _menu.addAction('Copy', self._copy)
-        _menu.addAction('Paste', self._paste)
-        _menu.addAction('Cut', self._cut)
-        _menu.addSeparator()
+        if self.edit_lock is False:
+            _menu.addAction('Add button', self._add_button)
+            _menu.addAction('Add partition', self._add_partition)
+            _menu.addSeparator()
+            _menu.addAction('Edit', self._edit)
+            _menu.addAction('Delete', self._delete)
+            _menu.addAction('Copy', self._copy)
+            _menu.addAction('Paste', self._paste)
+            _menu.addAction('Cut', self._cut)
+            _menu.addSeparator()
 
-        _tb = _menu.addMenu('Tab')
-        _tb.addAction('Add', self._add_tab)
-        _tb.addAction('Rename', self._rename_tab)
-        _tb.addAction('Delete', self._delete_tab)
+            _tb = _menu.addMenu('Tab')
+            _tb.addAction('Add', self._add_tab)
+            _tb.addAction('Rename', self._rename_tab)
+            _tb.addAction('Delete', self._delete_tab)
 
-        _df = _menu.addMenu('Default setting')
-        _df.addAction('Button', self._button_default_setting)
-        _df.addAction('Partition', self._partition_default_setting)
+            _df = _menu.addMenu('Default setting')
+            _df.addAction('Button', self._button_default_setting)
+            _df.addAction('Partition', self._partition_default_setting)
 
-        _menu.addSeparator()
-        _menu.addAction('Option', self._option)
+            _menu.addSeparator()
+            _menu.addAction('Option', self._option)
         _menu.addAction('Version information', self._info)
 
         self._select_cursor_pos_parts()
@@ -269,7 +274,10 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # Save Load
     # -----------------------
     def load_tab_data(self):
-        path = lib.get_tab_data_path()
+        if self.load_file is None:
+            path = lib.get_tab_data_path()
+        else:
+            path = self.load_file
         data = lib.not_escape_json_load(path)
         if data is None:
             self.insertTab(0, QtWidgets.QWidget(), 'Tab1')
@@ -299,6 +307,9 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                     partition.create(self.widget(tab_number), data)
 
     def save_tab_data(self):
+        if self.edit_lock is True:
+            return
+
         ls = []
         current = self.currentIndex()
         for i in range(self.count()):
@@ -323,7 +334,10 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             ls.append(_tab_data)
 
         lib.make_save_dir()
-        path = lib.get_tab_data_path()
+        if self.load_file is None:
+            path = lib.get_tab_data_path()
+        else:
+            path = self.load_file
         lib.not_escape_json_dump(path, ls)
 
     # -----------------------
@@ -331,6 +345,9 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # -----------------------
 
     def dropEvent(self, event):
+        if self.edit_lock is True:
+            return
+
         _mimedata = event.mimeData()
 
         if _mimedata.hasText() is True or _mimedata.hasUrls() is True:
@@ -392,6 +409,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.repaint()
 
     def dragMoveEvent(self, event):
+        if self.edit_lock is True:
+            return
         # パーツを移動中の描画更新
         if len(self._selected) > 0:
             self._parts_moving = True
@@ -403,6 +422,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         ドラッグされたオブジェクトを許可するかどうかを決める
         ドラッグされたオブジェクトが、テキストかファイルなら許可する
         '''
+        if self.edit_lock is True:
+            return
         mime = event.mimeData()
         if mime.hasText() is True or mime.hasUrls() is True:
             event.accept()
@@ -412,6 +433,9 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             event.ignore()
 
     def mousePressEvent(self, event):
+        if self.edit_lock is True:
+            return
+
         self._origin = event.pos()
         if event.button() == QtCore.Qt.LeftButton:
             self._band = QtCore.QRect()
@@ -424,6 +448,9 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.repaint()
 
     def mouseMoveEvent(self, event):
+        if self.edit_lock is True:
+            return
+
         if self._band is not None:
             self._band = QtCore.QRect(self._origin, event.pos())
         else:
@@ -435,6 +462,9 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.repaint()
 
     def mouseReleaseEvent(self, event):
+        if self.edit_lock is True:
+            return
+
         if event.button() == QtCore.Qt.LeftButton:
             if not self._origin:
                 self._origin = event.pos()
@@ -467,11 +497,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self._draw_snap_gide()
 
     def closeEvent(self, event):
-        # 2017以前だとhideEventにすると正常にウインドウサイズなどの情報が取ってこれない
-        if lib.maya_api_version() < 201700:
-            if self._floating_save is False:
-                lib.floating_save(self)
-            self._floating_save = True
+        if self.edit_lock is False:
+            # 2017以前だとhideEventにすると正常にウインドウサイズなどの情報が取ってこれない
+            if lib.maya_api_version() < 201700:
+                if self._floating_save is False:
+                    lib.floating_save(self)
+                self._floating_save = True
         # superだと2017でエラーになったため使用中止
         # super(SiShelfWeight, self).closeEvent(event)
         QtWidgets.QWidget.close(self)
@@ -544,12 +575,13 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         css = lib.button_css(buttons, css)
 
         # 選択中のパーツを誇張
-        for s in self._selected:
-            css += '#' + s.objectName() + '{'
-            if isinstance(s.data, button.ButtonData):
-                if s.data.use_bgcolor is True:
-                    css += 'background:' + s.data.bgcolor + ';'
-            css += 'border-color:red; border-style:solid; border-width:1px;}'
+        if self.edit_lock is False:
+            for s in self._selected:
+                css += '#' + s.objectName() + '{'
+                if isinstance(s.data, button.ButtonData):
+                    if s.data.use_bgcolor is True:
+                        css += 'background:' + s.data.bgcolor + ';'
+                css += 'border-color:red; border-style:solid; border-width:1px;}'
         self.setStyleSheet(css)
 
     def _select_cursor_pos_parts(self):
@@ -607,14 +639,14 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 # #################################################################################################
 
 
-def make_ui():
+def make_ui(load_file=None, edit_lock=False):
     # 同名のウインドウが存在したら削除
     ui = lib.get_ui(lib.TITLE, 'SiShelfWeight')
     if ui is not None:
         ui.close()
 
     app = QtWidgets.QApplication.instance()
-    ui = SiShelfWeight()
+    ui = SiShelfWeight(load_file=load_file, edit_lock=edit_lock)
     return ui
 
 
@@ -659,9 +691,9 @@ def popup():
     main(x=cursor.x(), y=cursor.y())
 
 
-def main(x=None, y=None):
+def main(x=None, y=None, load_file=None, edit_lock=False):
     # 画面中央に表示
-    ui = make_ui()
+    ui = make_ui(load_file=load_file, edit_lock=edit_lock)
     _floating = lib.load_floating_data()
     if _floating:
         width = _floating['width']
