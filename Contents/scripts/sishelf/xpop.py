@@ -5,7 +5,14 @@ from . import button
 
 TITLE = 'SiShelfXPOP'
 
-def main():
+
+def main(tab=None):
+    '''
+
+    :param tab: タブ名を文字列で指定。
+    　　　　　　 通常第１階層がタブになるが、タブ名を指定すればタブの内部が第１階層になる
+    :return:
+    '''
 
     # 同名のウインドウが存在したら削除
     # 1～2回は消えてくれるけど、その後は残ってしまうバグあり。
@@ -21,27 +28,19 @@ def main():
     _menu.setObjectName(TITLE)
 
     path = lib.get_tab_data_path()
-    data = lib.not_escape_json_load(path)
-    if data is None:
+    save_data = lib.not_escape_json_load(path)
+    if save_data is None:
         return
 
-    for _vars in data:
-        _m = _menu.addMenu(_vars['name'])
-
-        if _vars.get('button') is not None:
-            for _var in _vars['button']:
-                # 辞書からインスタンスのプロパティに代入
-                data = button.ButtonData()
-                for k, v in _var.items():
-                    setattr(data, k, v)
-
-                if data.type_ == 0:
-                    # 通常ボタン
-                    button.normal_data_context(_m, data)
-                else:
-                    # メニューボタン
-                    _m = _m.addMenu(data.label)
-                    button.menu_data_context(_m, data.menu_data)
+    if tab is None:
+        # タブ名を第１階層にする
+        for _vars in save_data:
+            _m = _menu.addMenu(_vars['name'])
+            create_buttons_from_menu(_m, _vars)
+    else:
+        for _vars in save_data:
+            if _vars['name'] == tab:
+                create_buttons_from_menu(_menu, _vars)
 
     # マウス位置に出現
     cursor = QtGui.QCursor.pos()
@@ -54,3 +53,20 @@ def main():
     )
 
     _menu.exec_(cursor)
+
+
+def create_buttons_from_menu(menu_, tab_data):
+    if tab_data.get('button') is not None:
+        for _var in tab_data['button']:
+            # 辞書からインスタンスのプロパティに代入
+            data = button.ButtonData()
+            for k, v in _var.items():
+                setattr(data, k, v)
+
+            if data.type_ == 0:
+                # 通常ボタン
+                button.normal_data_context(menu_, data)
+            else:
+                # メニューボタン
+                _m = menu_.addMenu(data.label)
+                button.menu_data_context(_m, data.menu_data)
