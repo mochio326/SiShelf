@@ -31,7 +31,7 @@ else:
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     URL = "https://github.com/mochio326/SiShelf"
-    VAR = '1.5.1'
+    VAR = '1.5.2'
     PEN_WIDTH = 1  # 矩形の枠の太さ
 
     def __init__(self, parent=None, load_file=None, edit_lock=False):
