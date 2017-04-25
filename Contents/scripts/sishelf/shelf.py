@@ -102,9 +102,11 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             _tb.addAction('Add', self._add_tab)
             _tb.addAction('Rename', self._rename_tab)
             _tb.addAction('Delete', self._delete_tab)
+            _tb.addSeparator()
             if self.currentWidget().reference is None:
                 _tb.addAction('Export', self._export_tab)
                 _tb.addAction('Import', self._import_tab)
+                _tb.addSeparator()
                 _tb.addAction('External reference', self._reference_tab)  # 外部参照設定
             else:
                 _tb.addAction('Remove external reference', self._remove_reference_tab)  # 外部参照設定解除
