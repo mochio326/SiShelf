@@ -9,6 +9,7 @@ from . import shelf_option
 
 import json
 import os
+import os.path
 import pymel.core as pm
 import re
 import copy
@@ -31,7 +32,7 @@ else:
 
 class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     URL = "https://github.com/mochio326/SiShelf"
-    VAR = '1.5.2'
+    VAR = '1.5.3'
     PEN_WIDTH = 1  # 矩形の枠の太さ
 
     def __init__(self, parent=None, load_file=None, edit_lock=False):
@@ -50,7 +51,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.setMovable(True)
             self.setAcceptDrops(True)
 
-        self.load_tab_data()
+        self.load_all_tab_data()
 
         self._origin = None
         self._band = None
@@ -73,10 +74,10 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self._selected = []
         self._set_stylesheet()
         self.update()
-        self.save_tab_data()
+        self.save_all_tab_data()
 
     def _tab_moved(self, event):
-        self.save_tab_data()
+        self.save_all_tab_data()
 
     # -----------------------
     # ContextMenu
@@ -99,6 +100,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             _tb.addAction('Add', self._add_tab)
             _tb.addAction('Rename', self._rename_tab)
             _tb.addAction('Delete', self._delete_tab)
+            # _tb.addAction('Export', self._export_tab)
+            # _tb.addAction('External reference', self._export_tab)  # 外部参照設定
 
             _df = _menu.addMenu('Default setting')
             _df.addAction('Button', self._button_default_setting)
@@ -141,7 +144,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         self._selected = []
         self.repaint()
-        self.save_tab_data()
+        self.save_all_tab_data()
         # カットの場合は貼り付けは一度だけ
         if self._cut_flag is True:
             self._clipboard = None
@@ -183,7 +186,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         )
         if _status == QtWidgets.QMessageBox.Yes:
             self.removeTab(self.currentIndex())
-            self.save_tab_data()
+            self.save_all_tab_data()
         else:
             return
 
@@ -198,7 +201,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if not _status:
             return
         self.setTabText(self.currentIndex(), new_tab_name)
-        self.save_tab_data()
+        self.save_all_tab_data()
 
     def _add_tab(self):
         new_tab_name, _status = QtWidgets.QInputDialog.getText(
@@ -212,13 +215,45 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
         self.insertTab(self.count() + 1, QtWidgets.QWidget(), new_tab_name)
         self.setCurrentIndex(self.count() + 1)
-        self.save_tab_data()
+        self.save_all_tab_data()
+
+    def _export_tab(self):
+        file_name = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            'Export Tab',
+            os.environ.get('MAYA_APP_DIR'),
+            'Json Files (*.json)'
+        )
+        if not file_name:
+            return
+        print file_name
+        root, ext = os.path.splitext(file_name[0])
+        if ext != '.json':
+            return
+        _data = self._get_tab_parts_dict(self.currentWidget(), {})
+        lib.not_escape_json_dump(file_name[0], _data)
+
+    def _import_tab(self):
+        file_name = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            'Import Tab',
+            os.environ.get('MAYA_APP_DIR'),
+            'Json Files (*.json)'
+        )
+        if not file_name:
+            return
+        print file_name
+        root, ext = os.path.splitext(file_name[0])
+        if ext != '.json':
+            return
+        _data = self._get_tab_parts_dict(self.currentWidget(), {})
+        lib.not_escape_json_dump(file_name[0], _data)
 
     def _delete(self):
         for s in self._selected:
             self.delete_parts(s)
         self._selected = []
-        self.save_tab_data()
+        self.save_all_tab_data()
 
     def _edit(self):
         if len(self._selected) != 1:
@@ -235,20 +270,20 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
         self.delete_parts(parts)
         self._set_stylesheet()
-        self.save_tab_data()
+        self.save_all_tab_data()
 
     def _add_button(self):
         data = button.get_default()
         data.position = self._context_pos
         self.create_button(data)
-        self.save_tab_data()
+        self.save_all_tab_data()
         self._set_stylesheet()
 
     def _add_partition(self):
         data = partition.get_default()
         data.position = self._context_pos
         self.create_partition(data)
-        self.save_tab_data()
+        self.save_all_tab_data()
 
     def delete_parts(self, widget):
         widget.setParent(None)
@@ -273,7 +308,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # -----------------------
     # Save Load
     # -----------------------
-    def load_tab_data(self):
+    def load_all_tab_data(self):
         if self.load_file is None:
             path = lib.get_tab_data_path()
         else:
@@ -289,24 +324,9 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
             if _vars['current'] is True:
                 self.setCurrentIndex(tab_number)
+                self._load_tab_data(self.widget(tab_number), _vars)
 
-            if _vars.get('button') is not None:
-                for _var in _vars['button']:
-                    # 辞書からインスタンスのプロパティに代入
-                    data = button.ButtonData()
-                    for k, v in _var.items():
-                        setattr(data, k, v)
-                    button.create(self.widget(tab_number), data)
-
-            if _vars.get('partition') is not None:
-                for _var in _vars['partition']:
-                    # 辞書からインスタンスのプロパティに代入
-                    data = partition.PartitionData()
-                    for k, v in _var.items():
-                        setattr(data, k, v)
-                    partition.create(self.widget(tab_number), data)
-
-    def save_tab_data(self):
+    def save_all_tab_data(self):
         if self.edit_lock is True:
             return
 
@@ -315,22 +335,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         for i in range(self.count()):
             _tab_data = {}
             _tab_data['name'] = self.tabText(i)
-
-            # カレントタブ
-            _tab_data['current'] = (i == current)
-
-            # ボタンのデータ
-            _b = []
-            for child in self.widget(i).findChildren(button.ButtonWidget):
-                _b.append(vars(child.data))
-            _tab_data['button'] = _b
-
-            # 仕切り線のデータ
-            _p = []
-            for child in self.widget(i).findChildren(partition.PartitionWidget):
-                _p.append(vars(child.data))
-            _tab_data['partition'] = _p
-
+            _tab_data['current'] = (i == current)  # カレントタブ
+            _tab_data = self._get_tab_parts_dict(self.widget(i), _tab_data)
             ls.append(_tab_data)
 
         lib.make_save_dir()
@@ -339,6 +345,39 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         else:
             path = self.load_file
         lib.not_escape_json_dump(path, ls)
+
+    def _get_tab_parts_dict(self, tab, dict_):
+        # 指定のタブ以下にあるパーツを取得
+        # ボタンのデータ
+        _b = []
+        for child in tab.findChildren(button.ButtonWidget):
+            _b.append(vars(child.data))
+        dict_['button'] = _b
+
+        # 仕切り線のデータ
+        _p = []
+        for child in tab.findChildren(partition.PartitionWidget):
+            _p.append(vars(child.data))
+        dict_['partition'] = _p
+
+        return dict_
+
+    def _load_tab_data(self, tab, tab_data):
+        if tab_data.get('button') is not None:
+            for _var in tab_data['button']:
+                # 辞書からインスタンスのプロパティに代入
+                data = button.ButtonData()
+                for k, v in _var.items():
+                    setattr(data, k, v)
+                button.create(tab, data)
+
+        if tab_data.get('partition') is not None:
+            for _var in tab_data['partition']:
+                # 辞書からインスタンスのプロパティに代入
+                data = partition.PartitionData()
+                for k, v in _var.items():
+                    setattr(data, k, v)
+                partition.create(tab, data)
 
     # -----------------------
     # Event
@@ -389,7 +428,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                     data.code = ''
 
             self.create_button(data)
-            self.save_tab_data()
+            self.save_all_tab_data()
 
         elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
 
@@ -398,7 +437,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self._selected_parts_move(event.pos())
             else:
                 self._parts_move(event.source(), event.pos())
-                self.save_tab_data()
+                self.save_all_tab_data()
                 self._origin = QtCore.QPoint()
 
             # よくわからん
@@ -517,7 +556,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self._parts_move(p, after_pos, data_pos_update)
             if save is True:
                 self._origin = QtCore.QPoint()
-                self.save_tab_data()
+                self.save_all_tab_data()
 
     def _parts_move(self, parts, after_pos, data_pos_update=True):
         # ドラッグ中に移動した相対位置を加算

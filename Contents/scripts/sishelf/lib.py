@@ -202,9 +202,9 @@ def maya_api_version():
     return int(cmds.about(api=True))
 
 
-def escape(s, quoted=u'\'"\\', escape=u'\\'):
+def escape(s, quoted='\'"\\', escape='\\'):
     return re.sub(
-            u'[%s]' % re.escape(quoted),
+            '[%s]' % re.escape(quoted),
             lambda mo: escape + mo.group(),
             s)
 
@@ -223,15 +223,15 @@ def script_execute(code, source_type):
 
 
 # 実行関数を文字列から動的生成用文字列
-_CONTEXT_FUNC = '''
+_CONTEXT_FUNC = """
 def _f():
     if {0} is True:
         code = readfile(r'{1}')
     else:
-        code = '{2}'
+        code = '''{2}'''
     source_type = '{3}'
     lib.script_execute(code, source_type)
-'''
+"""
 
 
 #-----------------------------------------------------------------------------

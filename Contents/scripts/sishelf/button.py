@@ -203,7 +203,7 @@ def menu_data_context(menu, data):
         exec (lib._CONTEXT_FUNC.format(
             _d['use_externalfile'],
             _d['externalfile'],
-            lib.escape(_d['code']),
+            lib.escape(_d['code'].encode('cp932')),
             _d['script_language'].lower()
         ))
         menu.addAction(_d['label'], _f)
@@ -214,7 +214,7 @@ def normal_data_context(menu, data):
         exec (lib._CONTEXT_FUNC.format(
             data.use_externalfile,
             data.externalfile,
-            lib.escape(data.code),
+            lib.escape(data.code.encode('cp932')),
             data.script_language.lower()
         ))
 
