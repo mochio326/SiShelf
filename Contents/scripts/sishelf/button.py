@@ -25,8 +25,7 @@ class ButtonWidget(QtWidgets.QToolButton):
         drag.exec_(QtCore.Qt.MoveAction)
 
     def mousePressEvent(self, event):
-        # ボタンが押されたときのボタンの色の変化
-        QtWidgets.QPushButton.mousePressEvent(self, event)
+        QtWidgets.QToolButton.mousePressEvent(self, event)
 
     def mouseReleaseEvent(self, event):
         # 左クリック
@@ -54,6 +53,7 @@ class ButtonWidget(QtWidgets.QToolButton):
                 lib.script_execute(code, source_type)
             else:
                 self._context_menu()
+        QtWidgets.QToolButton.mouseReleaseEvent(self, event)
 
     def _context_menu(self):
         _menu = QtWidgets.QMenu()
