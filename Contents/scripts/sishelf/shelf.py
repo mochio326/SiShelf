@@ -308,7 +308,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.save_all_tab_data()
             self.setTabIcon(self.currentIndex(), QtGui.QIcon())
 
-
     def _delete(self):
         for s in self._selected:
             self.delete_parts(s)
@@ -654,7 +653,9 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         css = lib.button_css(buttons, css)
 
         # 選択中のパーツを誇張
-        if self.edit_lock is False  or self.currentWidget().reference is None:
+        if self.edit_lock is True:
+            pass
+        elif self.currentWidget().reference is None:
             for s in self._selected:
                 css += '#' + s.objectName() + '{'
                 if isinstance(s.data, button.ButtonData):
