@@ -40,7 +40,14 @@ def main(tab=None, load_file=None):
         # タブ名を第１階層にする
         for _vars in save_data:
             _m = _menu.addMenu(_vars['name'])
-            create_buttons_from_menu(_m, _vars)
+            if _vars['reference'] is not None:
+                _w = QtWidgets.QWidget()
+                icon = QtGui.QIcon(_w.style().standardIcon(QtWidgets.QStyle.SP_ArrowDown))
+                _m.setIcon(icon)
+                _data = lib.not_escape_json_load(_vars['reference'])
+                create_buttons_from_menu(_m, _data)
+            else:
+                create_buttons_from_menu(_m, _vars)
     else:
         for _vars in save_data:
             if _vars['name'] == tab:
