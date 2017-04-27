@@ -96,6 +96,10 @@ class ButtonData(lib.PartsData):
             self.use_externalfile = False
         self.externalfile = path
 
+        self.xpop_visibility = True
+        self.xpop_spacer = False
+
+
     icon = property(doc='icon property')
     @icon.getter
     def icon(self):
@@ -134,8 +138,14 @@ class ButtonData(lib.PartsData):
 
 def create(parent, data, preview=False):
     widget = ButtonWidget(parent, data, preview)
-    widget.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
     widget.setObjectName(lib.random_string(15))
+    update(widget, data)
+    widget.show()
+    return widget
+
+
+def update(widget, data):
+    widget.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
     widget.setIcon(data.icon)
     widget.setIconSize(data.icon_size)
     if data.size is not None:
@@ -158,10 +168,7 @@ def create(parent, data, preview=False):
         palette.setColor(QtGui.QPalette.Window, QtGui.QColor(data.bgcolor))
         widget.setPalette(palette)
 
-    widget.show()
     widget.move(data.position)
-    return widget
-
 
 def readfile(path):
     if os.path.exists(path) is False:

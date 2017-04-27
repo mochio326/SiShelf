@@ -6,6 +6,7 @@ from . import partition
 from . import partition_setting
 from . import lib
 from . import shelf_option
+from . import xpop
 
 import json
 import os
@@ -114,6 +115,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             _df = _menu.addMenu('Default setting')
             _df.addAction('Button', self._button_default_setting)
             _df.addAction('Partition', self._partition_default_setting)
+            if self.currentWidget().reference is None:
+                _menu.addAction('XPOP setting', self._xpop_setting)
 
             _menu.addSeparator()
             _menu.addAction('Option', self._option)
@@ -153,6 +156,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self._selected = []
         self.repaint()
         self.save_all_tab_data()
+        self._set_stylesheet()
         # カットの場合は貼り付けは一度だけ
         if self._cut_flag is True:
             self._clipboard = None
@@ -161,7 +165,81 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def _cut(self):
         self._copy()
         self.delete_parts(self._selected[0])
+        self._selected = []
         self._cut_flag = True
+
+    def _delete(self):
+        for s in self._selected:
+            self.delete_parts(s)
+        self._selected = []
+        self.save_all_tab_data()
+
+    def _edit(self):
+        if len(self._selected) != 1:
+            print('Only standalone selection is supported.')
+            return
+        parts = self._selected[0]
+
+        if isinstance(parts.data, button.ButtonData):
+            data, _result = button_setting.SettingDialog.get_data(self, parts.data)
+            if _result is not True:
+                print("Cancel.")
+                return None
+            parts.data = data
+            button.update(parts, parts.data)
+
+        elif isinstance(parts.data, partition.PartitionData):
+            data, _result = partition_setting.SettingDialog.get_data(self, parts.data)
+            if _result is not True:
+                print("Cancel.")
+                return None
+            parts.data = data
+
+        '''
+        XPOPの為にウィジェットの順番を変えたくないので、utton.updateにてボタンの描画設定を変更してみたものの
+        縦横サイズ固定でない場合、ボタンのサイズが適切に変化しなかった。
+        その対策として、全てのパーツを作り直すことでこれを回避している。
+        '''
+        # self.repaint()
+        _data = self.currentWidget().get_all_parts_dict()
+        self.currentWidget().delete_all_parts()
+        self.currentWidget().create_parts_from_dict(_data)
+
+        self._set_stylesheet()
+        self.save_all_tab_data()
+
+    def _add_button(self):
+        data = button.get_default()
+        data.position = self._context_pos
+        self.create_button(data)
+        self.save_all_tab_data()
+        self._set_stylesheet()
+
+    def _add_partition(self):
+        data = partition.get_default()
+        data.position = self._context_pos
+        self.create_partition(data)
+        self.save_all_tab_data()
+
+    def delete_parts(self, widget):
+        widget.setParent(None)
+        widget.deleteLater()
+
+    def create_button(self, data):
+        return self._create_parts(button_setting, button, data)
+
+    def create_partition(self, data):
+        return self._create_parts(partition_setting, partition, data)
+
+    def _create_parts(self, ui_obj, data_obj, data):
+        data, _result = ui_obj.SettingDialog.get_data(self, data)
+        if _result is not True:
+            print("Cancel.")
+            return None
+        data_obj.create(self.currentWidget(), data)
+        self._selected = []
+        self.repaint()
+        return data
 
     def _button_default_setting(self):
         data = button.get_default()
@@ -183,6 +261,21 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         path = lib.get_partition_default_filepath()
         lib.not_escape_json_dump(path, vars(data))
 
+    def _xpop_setting(self):
+        _w = self.currentWidget()
+        ls = _w.get_all_button()
+        parts, _result = xpop.XpopSettingDialog.show_dialog(self, ls)
+        if _result is not True:
+            print("Cancel.")
+            return None
+        _w.delete_all_button()
+        _w.create_button_from_instance(parts)
+        self._set_stylesheet()
+        self.save_all_tab_data()
+
+    # -----------------------
+    # Tab
+    # -----------------------
     def _delete_tab(self):
         if self.count() == 1:
             return
@@ -260,8 +353,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         )
         if _status == QtWidgets.QMessageBox.Yes:
             _data = lib.not_escape_json_load(file_name[0])
-            self.currentWidget().all_delete_parts()
-            self.currentWidget().create_parts(_data)
+            self.currentWidget().delete_all_parts()
+            self.currentWidget().create_parts_from_dict(_data)
             self._set_stylesheet()
             self.save_all_tab_data()
 
@@ -297,74 +390,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         self.currentWidget().reference = file_name[0]
         _data = lib.not_escape_json_load(file_name[0])
-        self.currentWidget().all_delete_parts()
-        self.currentWidget().create_parts(_data)
+        self.currentWidget().delete_all_parts()
+        self.currentWidget().create_parts_from_dict(_data)
         self._set_stylesheet()
         self.save_all_tab_data()
 
     def _remove_reference_tab(self):
         if self.currentWidget().reference is not None:
             self.currentWidget().reference = None
-            self.currentWidget().all_delete_parts()
+            self.currentWidget().delete_all_parts()
             self._set_stylesheet()
             self.save_all_tab_data()
             self.setTabIcon(self.currentIndex(), QtGui.QIcon())
-
-    def _delete(self):
-        for s in self._selected:
-            self.delete_parts(s)
-        self._selected = []
-        self.save_all_tab_data()
-
-    def _edit(self):
-        if len(self._selected) != 1:
-            print('Only standalone selection is supported.')
-            return
-        parts = self._selected[0]
-
-        if isinstance(parts.data, button.ButtonData):
-            _re = self.create_button(parts.data)
-        elif isinstance(parts.data, partition.PartitionData):
-            _re = self.create_partition(parts.data)
-
-        if _re is None:
-            return
-        self.delete_parts(parts)
-        self._set_stylesheet()
-        self.save_all_tab_data()
-
-    def _add_button(self):
-        data = button.get_default()
-        data.position = self._context_pos
-        self.create_button(data)
-        self.save_all_tab_data()
-        self._set_stylesheet()
-
-    def _add_partition(self):
-        data = partition.get_default()
-        data.position = self._context_pos
-        self.create_partition(data)
-        self.save_all_tab_data()
-
-    def delete_parts(self, widget):
-        widget.setParent(None)
-        widget.deleteLater()
-
-    def create_button(self, data):
-        return self._create_parts(button_setting, button, data)
-
-    def create_partition(self, data):
-        return self._create_parts(partition_setting, partition, data)
-
-    def _create_parts(self, ui_obj, data_obj, data):
-        data, _result = ui_obj.SettingDialog.get_data(self, data)
-        if _result is not True:
-            print("Cancel.")
-            return None
-        data_obj.create(self.currentWidget(), data)
-        self._selected = []
-        self.repaint()
-        return data
 
     # -----------------------
     # Save Load
@@ -386,17 +423,17 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             if _vars['current'] is True:
                 self.setCurrentIndex(tab_number)
             if _vars.get('reference') is None:
-                self.widget(tab_number).create_parts(_vars)
+                self.widget(tab_number).create_parts_from_dict(_vars)
             else:
                 if _vars['reference'] is None:
-                    self.widget(tab_number).create_parts(_vars)
+                    self.widget(tab_number).create_parts_from_dict(_vars)
                 else:
                     icon = QtGui.QIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ArrowDown))
                     self.setTabIcon(tab_number, icon)
                     _data = lib.not_escape_json_load(_vars['reference'])
                     self.widget(tab_number).reference = _vars['reference']
-                    self.widget(tab_number).all_delete_parts()
-                    self.widget(tab_number).create_parts(_data)
+                    self.widget(tab_number).delete_all_parts()
+                    self.widget(tab_number).create_parts_from_dict(_data)
 
     def save_all_tab_data(self):
         if self.edit_lock is True:
@@ -729,19 +766,21 @@ class ShelfTabWeight(QtWidgets.QWidget):
         dict_ = {}
         # ボタンのデータ
         _b = []
-        for child in self.findChildren(button.ButtonWidget):
-            _b.append(vars(child.data))
+        _ls = self.get_all_button()
+        for child in _ls:
+            _b.append(vars(child))
         dict_['button'] = _b
 
         # 仕切り線のデータ
         _p = []
-        for child in self.findChildren(partition.PartitionWidget):
-            _p.append(vars(child.data))
+        _ls = self.get_all_partition()
+        for child in _ls:
+            _p.append(vars(child))
         dict_['partition'] = _p
 
         return dict_
 
-    def create_parts(self, data):
+    def create_parts_from_dict(self, data):
         if data.get('button') is not None:
             for _var in data['button']:
                 # 辞書からインスタンスのプロパティに代入
@@ -758,11 +797,33 @@ class ShelfTabWeight(QtWidgets.QWidget):
                     setattr(_d, k, v)
                 partition.create(self, _d)
 
-    def all_delete_parts(self):
+    def create_button_from_instance(self, ls):
+        for _l in ls:
+            button.create(self, _l)
+
+    def delete_all_parts(self):
+        self.delete_all_button()
+        self.delete_all_partition()
+
+    def delete_all_button(self):
         for child in self.findChildren(button.ButtonWidget):
             self.delete_parts(child)
+
+    def delete_all_partition(self):
         for child in self.findChildren(partition.PartitionWidget):
             self.delete_parts(child)
+
+    def get_all_button(self):
+        ls = []
+        for child in self.findChildren(button.ButtonWidget):
+            ls.append(child.data)
+        return ls
+
+    def get_all_partition(self):
+        ls = []
+        for child in self.findChildren(partition.PartitionWidget):
+            ls.append(child.data)
+        return ls
 
     def delete_parts(self, widget):
         widget.setParent(None)

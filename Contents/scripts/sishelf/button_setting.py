@@ -472,6 +472,7 @@ class DccIconViewer(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(DccIconViewer, self).__init__(parent)
         self.view = QtWidgets.QListView()
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.view.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
         # ダイアログのOK/キャンセルボタンを用意
