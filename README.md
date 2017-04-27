@@ -1,4 +1,4 @@
-# SiShelf [Var.1.6.0]
+# SiShelf [Var.1.7.0]
 
 ![SiShelf](/images/01.png)
 
@@ -59,7 +59,13 @@ SiShelfはMayaのウインドウにドッキングすることができます。
 
 ![SiShelf](/images/12.png)
 
-アイコンなどもシェルフで登録したものが表示されます。
+アイコンなどもシェルフで登録したものが表示されます。  
+XPOPは初期設定ではボタンを作成した順番で表示されます。  
+これを変更したい場合はシェルフモードのコンテキストメニュー XPOP Setting から設定を行ってください。
+
+![SiShelf](/images/15.gif)
+
+表示の順番、表示するかどうか、スペーサーを挟み込むかどうかを設定可能です。
 
 
 ### ボタンの登録
@@ -162,6 +168,7 @@ Tab > External reference |  現在のタブをリファレンスタブに切り�
 Tab > Remove external reference |  リファレンスタブを取りやめます。
 Default setting > Button | ボタンを作る際の初期設定を行います。
 Default setting > Partition | 仕切り線を作る際の初期設定を行います。
+XPOP Setting | XPOPで表示する順番などの表示設定を行います。
 Option | シェルフのオプション設定を行います。
 Version information | バージョン情報を確認できます。
 
@@ -242,6 +249,10 @@ MAYA2017：問題なし
 
 ## 改訂履歴
 
+2017/4/28
++ バージョン1.7.0
++ [Shelf]XPOP表示設定機能実装
++ [XPOP]シェルフでの表示設定が反映されるように修正
 
 2017/4/26
 + バージョン1.6.0

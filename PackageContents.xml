@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ApplicationPackage SchemaVersion="1.6.0"
+<ApplicationPackage SchemaVersion="1.7.0"
 	ProductType="Application"
 
 	AutodeskProduct="Maya"
 	Name="SiShelf"
 	Description="Autodesk Maya SiShelf"
-	AppVersion="1.6.0"
+	AppVersion="1.7.0"
 	Author="mochio"
 	AppNameSpace="com.autodesk.exchange.maya.sishelf"
 	HelpFile=""
