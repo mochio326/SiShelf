@@ -87,7 +87,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _menu = QtWidgets.QMenu()
         # 項目名と実行する関数の設定
         if self.edit_lock is False:
-            print self.currentWidget().reference
             if self.currentWidget().reference is None:
                 _menu.addAction('Add button', self._add_button)
                 _menu.addAction('Add partition', self._add_partition)
