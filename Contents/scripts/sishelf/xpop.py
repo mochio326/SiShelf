@@ -102,7 +102,7 @@ class XpopSettingDialog(QtWidgets.QDialog):
         '''
         super(XpopSettingDialog, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-        self.setWindowTitle('Xpop Setting')
+        self.setWindowTitle('XPOP Setting')
         self._parts = copy.deepcopy(parts)
         self.view = QtWidgets.QTreeView()
         self.view.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -124,14 +124,23 @@ class XpopSettingDialog(QtWidgets.QDialog):
         self.model.setHorizontalHeaderLabels(['Label', 'Visibility', 'InsertSpacer'])
         self.view.setIconSize(QtCore.QSize(32, 32))
         self.view.setModel(self.model)
-        self.view.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-        self.view.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
-        self.view.header().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+
+        if hasattr(self.view.header(), 'setResizeMode'):
+            # PySide
+            self.view.header().setResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+            self.view.header().setResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+            self.view.header().setResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+        else:
+            # PySide2
+            self.view.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+            self.view.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+            self.view.header().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
         self.set_item()
         self.view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.view.customContextMenuRequested.connect(self._context)
         self.view.setAlternatingRowColors(True)
         self.resize(400, 500)
+
 
     def _context(self):
         _menu = QtWidgets.QMenu(self)
