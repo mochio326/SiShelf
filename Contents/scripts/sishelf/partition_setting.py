@@ -50,7 +50,6 @@ class SettingDialog(QtWidgets.QDialog, partition_setting_ui.Ui_Form):
         self.line_label.keyPressEvent = functools.partial(_key_press, widget=self.line_label)
         self.line_label.setToolTip('It will be reflected in the preview when focus is out.')
 
-
         self.button_color.clicked.connect(self._select_color)
 
     def _redraw_ui(self):
