@@ -2,6 +2,7 @@
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from . import lib
 from . import button
+from . import shelf_option
 import copy
 
 TITLE = 'SiShelfXPOP'
@@ -57,15 +58,37 @@ def main(tab=None, load_file=None):
     # マウス位置に出現
     cursor = QtGui.QCursor.pos()
 
-    _menu.setStyleSheet(
-        "*{color:#2f2f2f; "
-        "background: qlineargradient(x0:0, y1:0, x1:0, y1:1, stop:0 #f2c94c, stop:1 #f2994a); "
-        "selection-color: #7e0e18; "
-        "selection-background-color: #e27f34; }"
-       "QMenu::separator {"
-        "height:1px; background:chocolate; margin-left:1px; margin-right:3px;"
-        "}"
-    )
+    _sop = shelf_option.OptionData()
+    if _sop.xpop_customize is True:
+        _menu.setStyleSheet(
+            '''
+            QMenu{{
+                font-size: {1}px;
+                background: qlineargradient(x0:0, y1:0, x1:0, y1:1, stop:0 {2}, stop:1 {3});
+            }}
+            QMenu::item {{
+                color: {0};
+                padding: 2px 20px 2px 20px;
+            }}
+            QMenu::item:selected {{
+                background: {4};
+            }}
+            QMenu::separator {{
+                height:{5}px;
+                background:{6};
+                margin-left:3px;
+                margin-right:3px;
+            }}
+            '''.format(
+                _sop.xpop_fontcolor,
+                _sop.xpop_label_size,
+                _sop.xpop_bgbottomcolor,
+                _sop.xpop_bgtopcolor,
+                _sop.xpop_selectedcolor,
+                _sop.xpop_separator_height,
+                _sop.xpop_separator_color
+                )
+            )
 
     _menu.exec_(cursor)
 
