@@ -150,6 +150,6 @@ def execute():
     menu_setup()
     register_sishelf_runtime_command()
     # 2017以降ではworkspaceControlがあるので記録と復元は必要ない
-    if lib.maya_api_version() < 201700:
+    if lib.maya_version() < 2017:
         register_events()
         restore_shelf()

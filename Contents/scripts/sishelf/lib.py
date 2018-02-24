@@ -63,7 +63,7 @@ def get_ui(name, weight_type):
             continue
         # 2017だとインスタンスの型をチェックしないと別の物まで入ってきてしまうらしい
         # 2016以前だと比較すると通らなくなる…orz
-        if maya_api_version() >= 201700:
+        if maya_version() >= 2017:
             if v.__class__.__name__ == weight_type:
                 return v
         else:
@@ -200,6 +200,9 @@ def random_string(length, seq=string.digits + string.ascii_lowercase):
 
 def maya_api_version():
     return int(cmds.about(api=True))
+
+def maya_version():
+    return int(cmds.about(v=True)[:4])
 
 
 def escape(s, quoted='\'"\\', escape='\\'):

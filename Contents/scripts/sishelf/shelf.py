@@ -15,14 +15,14 @@ import pymel.core as pm
 import re
 import copy
 
-if lib.maya_api_version() < 201500:
+if lib.maya_version() < 2015:
     # 2014以下のバージョン用
     MayaQWidgetDockableMixin = object
 
-elif lib.maya_api_version() < 201700:
+elif lib.maya_version() < 2017:
     from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
-elif 201700 <= lib.maya_api_version() and lib.maya_api_version() < 201800:
+elif 2017 <= lib.maya_version() and lib.maya_version() < 2019:
     # TODO: 新バージョンが出たら確認すること
     from .patch import m2017
     MayaQWidgetDockableMixin = m2017.MayaQWidgetDockableMixin2017
@@ -615,7 +615,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def closeEvent(self, event):
         if self.edit_lock is False:
             # 2017以前だとhideEventにすると正常にウインドウサイズなどの情報が取ってこれない
-            if lib.maya_api_version() < 201700:
+            if lib.maya_version() < 2017:
                 if self._floating_save is False:
                     lib.floating_save(self)
                 self._floating_save = True
@@ -893,7 +893,7 @@ def main(x=None, y=None, load_file=None, edit_lock=False):
         width = None
         height = None
 
-    if lib.maya_api_version() > 201300:
+    if lib.maya_version() > 2013:
 
         ui_script = "import sishelf.shelf;sishelf.shelf.restoration_workspacecontrol()"
         # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる
@@ -924,7 +924,7 @@ def main(x=None, y=None, load_file=None, edit_lock=False):
         ui.setDockableParameters(**opts)
 
         # 2017だとworkspaceControlコマンドでUI表示されるのでshowはいらない
-        if lib.maya_api_version() > 201700:
+        if lib.maya_version() > 2017:
             ui.show()
 
     else:
@@ -935,6 +935,7 @@ def main(x=None, y=None, load_file=None, edit_lock=False):
 def restoration_workspacecontrol():
     # workspacecontrolの再現用
     ui = make_ui()
+    ui.show()
     ui_script = "import sishelf.shelf;sishelf.shelf.restoration_workspacecontrol()"
     # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる
     opts = {
