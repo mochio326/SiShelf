@@ -885,6 +885,8 @@ def popup():
 def main(x=None, y=None, load_file=None, edit_lock=False):
     # 画面中央に表示
     ui = make_ui(load_file=load_file, edit_lock=edit_lock)
+    ui.show()
+
     _floating = lib.load_floating_data()
     if _floating:
         width = _floating['width']
@@ -920,16 +922,7 @@ def main(x=None, y=None, load_file=None, edit_lock=False):
             "uiScript": ui_script,
             "closeCallback": None
         }
-
         ui.setDockableParameters(**opts)
-
-        # 2017だとworkspaceControlコマンドでUI表示されるのでshowはいらない
-        if lib.maya_version() > 2017:
-            ui.show()
-
-    else:
-        # 2013
-        ui.show()
 
 
 def restoration_workspacecontrol():
