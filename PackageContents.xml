@@ -5,7 +5,7 @@
 	AutodeskProduct="Maya"
 	Name="SiShelf"
 	Description="Autodesk Maya SiShelf"
-	AppVersion="1.7.2"
+	AppVersion="1.7.3"
 	Author="mochio"
 	AppNameSpace="com.autodesk.exchange.maya.sishelf"
 	HelpFile=""
