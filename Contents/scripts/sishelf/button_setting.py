@@ -471,6 +471,7 @@ class DccIconViewer(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(DccIconViewer, self).__init__(parent)
+        self.icon_name = ''
         self.view = QtWidgets.QListView()
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.view.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -495,6 +496,14 @@ class DccIconViewer(QtWidgets.QDialog):
         self.view.setAlternatingRowColors(True)
         self.resize(300, 500)
 
+        self.sel_model = self.view.selectionModel()
+        self.sel_model.selectionChanged.connect(self._list_changed)
+
+    def _list_changed(self):
+        for index in self.sel_model.selectedIndexes():
+            file_path = self.model.data(index)
+        self.icon_name =  ':/' + file_path
+
     def set_item(self):
         images = get_icon_list()
         for img in images:
@@ -514,7 +523,7 @@ class DccIconViewer(QtWidgets.QDialog):
     def get_icon_name(parent=None):
         dialog = DccIconViewer(parent)
         result = dialog.exec_()  # ダイアログを開く
-        name = dialog.icon_name()  # キャンバスサイズを取得
+        name = dialog.icon_name  # キャンバスサイズを取得
         return (name, result == QtWidgets.QDialog.Accepted)
 
 
