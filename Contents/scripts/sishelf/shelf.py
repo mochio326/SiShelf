@@ -56,6 +56,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         self._origin = None
         self._band = None
+        self._right_drag = False
         self._selected = []
         self._floating_save = False
         self._clipboard = None
@@ -125,6 +126,11 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         # マウス位置に出現
         cursor = QtGui.QCursor.pos()
         _menu.exec_(cursor)
+        if self._right_drag:
+            self._right_drag = False
+            self._band = None
+            self.repaint()
+
 
     def _info(self):
         _status = QtWidgets.QMessageBox.information(
@@ -209,7 +215,14 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _add_button(self):
         data = button.get_default()
+        print  data.position
         data.position = self._context_pos
+        if self._right_drag:
+            data.position_x = self._right_drag_rect.x()
+            data.position_y =self._right_drag_rect.y() - self.sizeHint().height()
+            data.width = self._right_drag_rect.width()
+            data.height = self._right_drag_rect.height()
+            data.size_flag = True
         self.create_button(data)
         self.save_all_tab_data()
         self._set_stylesheet()
@@ -556,11 +569,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if event.button() == QtCore.Qt.LeftButton:
             self._band = QtCore.QRect()
             self._parts_moving = False
+            self._right_drag = False
 
         if event.button() == QtCore.Qt.MiddleButton:
             self._select_cursor_pos_parts()
             if len(self._selected) <= 1:
                 self._set_stylesheet()
+
+        if event.button() == QtCore.Qt.RightButton:
+            self._band = QtCore.QRect()
+            self._parts_moving = False
+            self._right_drag = True
+
         self.repaint()
 
     def mouseMoveEvent(self, event):
@@ -580,7 +600,6 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def mouseReleaseEvent(self, event):
         if self.edit_lock is True or self.currentWidget().reference is not None:
             return
-
         if event.button() == QtCore.Qt.LeftButton:
             if not self._origin:
                 self._origin = event.pos()
@@ -590,9 +609,18 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self._origin = QtCore.QPoint()
             self._band = None
 
+
         # 選択中のパーツを移動
         if event.button() == QtCore.Qt.MiddleButton:
             self._selected_parts_move(event.pos())
+
+        if event.button() == QtCore.Qt.RightButton:
+            if not self._origin:
+                self._origin = event.pos()
+            rect = QtCore.QRect(self._origin, event.pos()).normalized()
+            self._origin = QtCore.QPoint()
+            #self._band = None
+            self._right_drag_rect = rect
 
         self._parts_moving = False
         self.repaint()
@@ -604,6 +632,8 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             color = QtGui.QColor(255, 255, 255, 125)
             pen = QtGui.QPen(color, self.PEN_WIDTH)
             painter.setPen(pen)
+            if self._right_drag:
+                painter.setBrush(QtGui.QBrush(QtCore.Qt.lightGray, QtCore.Qt.BDiagPattern))
             painter.drawRect(self._band)
             painter.restore()
         # ガイドグリッドの描画
