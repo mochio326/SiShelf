@@ -16,7 +16,6 @@ class ButtonWidget(QtWidgets.QToolButton):
         self.installEventFilter(self)
 
 
-
     def eventFilter(self, obj, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ControlModifier:
@@ -27,35 +26,27 @@ class ButtonWidget(QtWidgets.QToolButton):
         return False
 
 
+
     def mouseMoveEvent(self, event):
         # 中クリックだけドラッグ＆ドロップ可能にする
-        #if event.buttons() != QtCore.Qt.MidButton:
-        #    return
+        if event.buttons() != QtCore.Qt.MidButton:
+            return
 
-        modifiers = QtWidgets.QApplication.keyboardModifiers()
-        if modifiers == QtCore.Qt.ControlModifier:
-            mouse_moved(self, event)
-        else:
-            # 中クリックだけドラッグ＆ドロップ可能にする
-            if event.buttons() != QtCore.Qt.MidButton:
-               return
+        # ドラッグ＆ドロップされるデータ形式を代入
+        mimedata = QtCore.QMimeData()
+        drag = QtGui.QDrag(self)
+        drag.setMimeData(mimedata)
+        drag.exec_(QtCore.Qt.MoveAction)
 
-            # ドラッグ＆ドロップされるデータ形式を代入
-            mimedata = QtCore.QMimeData()
-            drag = QtGui.QDrag(self)
-            drag.setMimeData(mimedata)
-            drag.exec_(QtCore.Qt.MoveAction)
+
 
     def mousePressEvent(self, event):
-        mouse_pressed(self, event.pos())
         QtWidgets.QToolButton.mousePressEvent(self, event)
 
     def mouseReleaseEvent(self, event):
         # 左クリック
         if self.preview is True:
             return
-
-        mouse_released(self, event)
 
         if event.button() == QtCore.Qt.LeftButton:
             # ボタン以外のところでマウスを離したらキャンセル扱い
@@ -263,42 +254,9 @@ def normal_data_context(menu, data):
             _act.setToolTip(data.tooltip)
         '''
 
-#ウィンドウサイズ切り替え位置でカーソル変更する
-def set_cursor_icon(widget, event):
-    if event.type() == QtCore.QEvent.Type.Enter:
-        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.ArrowCursor)
-    if event.type() == QtCore.QEvent.Type.HoverMove:
-        pos = event.pos()
-        resize_mode = mouse_pressed(widget, pos, set_value=False)
-        cur_dict = {
-                        'right':QtCore.Qt.SizeHorCursor,
-                         'left':QtCore.Qt.SizeHorCursor,
-                         'top':QtCore.Qt.SizeVerCursor,
-                         'bottom':QtCore.Qt.SizeVerCursor,
-                         'top_left':QtCore.Qt.SizeFDiagCursor,
-                         'bottom_right':QtCore.Qt.SizeFDiagCursor,
-                         'top_right':QtCore.Qt.SizeBDiagCursor,
-                         'bottom_left':QtCore.Qt.SizeBDiagCursor,
-                         None:QtCore.Qt.ArrowCursor
-                            }
-        cur = cur_dict[resize_mode]
-        if QtWidgets.QApplication.overrideCursor() is None:
-            return
-        current_cur = QtWidgets.QApplication.overrideCursor().shape()
-        if cur != current_cur:
-            QtWidgets.QApplication.changeOverrideCursor(cur_dict[resize_mode])
-    #UI外に出たときは元のMaya標準カーソルに戻す
-    if event.type() == QtCore.QEvent.Type.Leave:
-        QtWidgets.QApplication.restoreOverrideCursor()
 
-def mouse_released(widget, pos):
-    widget.mc_x = pos.x()
-    widget.mc_y = pos.y()
-
-def mouse_pressed(widget, pos, set_value=True):
+def mouse_pressed(widget, pos):
     hit_size = 10
-    pre_size_x = widget.size().width()
-    pre_size_y = widget.size().height()
     mc_x = pos.x()
     mc_y = pos.y()
     size_x = widget.size().width()
@@ -322,52 +280,36 @@ def mouse_pressed(widget, pos, set_value=True):
         resize_mode = 'top_right'
     if mc_x < hit_size and sub_y < hit_size:
         resize_mode = 'bottom_left'
-    if set_value:
-        widget.pre_size_x = pre_size_x
-        widget.pre_size_y = pre_size_y
-        widget.mc_x = mc_x
-        widget.mc_y = mc_y
-        widget.size_x = size_x
-        widget.size_y = size_y
-        widget.sub_x = sub_x
-        widget.sub_y = sub_y
-        widget.resize_mode = resize_mode
     return resize_mode
 
-def mouse_moved(widget, pos, a=10, b=10):
+#ウィンドウサイズ切り替え位置でカーソル変更する
+def set_cursor_icon(widget, event):
+    if event.type() == QtCore.QEvent.Type.Enter:
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.ArrowCursor)
+    if event.type() == QtCore.QEvent.Type.HoverMove:
+        pos = event.pos()
+        resize_mode = mouse_pressed(widget, pos)
+        cur_dict = {
+                        'right':QtCore.Qt.SizeHorCursor,
+                         'left':QtCore.Qt.SizeHorCursor,
+                         'top':QtCore.Qt.SizeVerCursor,
+                         'bottom':QtCore.Qt.SizeVerCursor,
+                         'top_left':QtCore.Qt.SizeFDiagCursor,
+                         'bottom_right':QtCore.Qt.SizeFDiagCursor,
+                         'top_right':QtCore.Qt.SizeBDiagCursor,
+                         'bottom_left':QtCore.Qt.SizeBDiagCursor,
+                         None:QtCore.Qt.ArrowCursor
+                            }
+        cur = cur_dict[resize_mode]
+        if QtWidgets.QApplication.overrideCursor() is None:
+            return
+        current_cur = QtWidgets.QApplication.overrideCursor().shape()
+        if cur != current_cur:
+            QtWidgets.QApplication.changeOverrideCursor(cur_dict[resize_mode])
+    #UI外に出たときは元のMaya標準カーソルに戻す
+    if event.type() == QtCore.QEvent.Type.Leave:
+        QtWidgets.QApplication.restoreOverrideCursor()
 
-    winX = pos.globalX() - widget.mc_x
-    winY = pos.globalY() - widget.mc_y
-    if widget.resize_mode is None:
-        #widget.move(winX, winY)
-        return
-
-    w_x = widget.size().width()
-    w_y = widget.size().height()
-    if 'right' in widget.resize_mode:
-        w_x = pos.x() + widget.sub_x
-        widget.setFixedSize(w_x, w_y)
-    if 'bottom' in widget.resize_mode:
-        w_y = pos.y() + widget.sub_y
-        widget.setFixedSize(w_x, w_y)
-    if 'left' in widget.resize_mode:
-        sub_x = pos.x() + widget.mc_x
-        w_x = w_x - sub_x
-        widget.setFixedSize(w_x, w_y)
-        if widget.size().width() != widget.pre_size_x:
-            winX = widget.pos().x()  + pos.x() + widget.mc_x
-            widget.move(winX, widget.pos().y())
-        widget.pre_size_x = widget.size().width()
-    if 'top' in widget.resize_mode:
-        sub_y = pos.y() + widget.mc_y
-        w_y = w_y - sub_y
-        widget.setFixedSize(w_x, w_y)
-        if widget.size().height() != widget.pre_size_y:
-            winY = widget.pos().y()  + pos.y() + widget.mc_y
-            widget.move(widget.pos().x(), winY)
-        widget.pre_size_y = widget.size().height()
-
-    print w_x, w_y
 
 #-----------------------------------------------------------------------------
 # EOF

@@ -13,16 +13,32 @@ class PartsData(object):
     def __init__(self):
         self.use_label = True
         self.label = 'label'
-        self.label_font_size = 10
+        self._label_font_size = 10
         self.position_x = 0
         self.position_y = 0
         self.width = 100
         self.height = 50
 
+        self.position_offset_x = 0
+        self.position_offset_y = 0
+        self.scale = 1
+
+    label_font_size = property(doc='label_font_size property')
+    @label_font_size.getter
+    def label_font_size(self):
+        return self._label_font_size * self.scale
+
+    @label_font_size.setter
+    def label_font_size(self, size):
+        self._label_font_size = size
+
     position = property(doc='position property')
     @position.getter
     def position(self):
-        return QtCore.QPoint(self.position_x, self.position_y)
+        _x = (self.position_x + self.position_offset_x) * self.scale
+        _y = (self.position_y + self.position_offset_y) * self.scale
+        return QtCore.QPoint(_x , _y)
+
     @position.setter
     def position(self, data):
         self.position_x = data.x()
@@ -33,7 +49,7 @@ class PartsData(object):
     def size(self):
         if self.size_flag is False:
             return None
-        return QtCore.QSize(self.width, self.height)
+        return QtCore.QSize(self.width * self.scale, self.height * self.scale)
 
 
 def button_css(buttons, css):
@@ -235,7 +251,6 @@ def _f():
     source_type = '{3}'
     lib.script_execute(code, source_type)
 """
-
 
 #-----------------------------------------------------------------------------
 # EOF

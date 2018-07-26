@@ -66,8 +66,8 @@ class PartitionWidget(QtWidgets.QWidget):
                 _line_height_point = self.data.margin + round(self.data.line_width / 2)
 
             line = QtCore.QLine(
-                QtCore.QPoint(_line_start_point, _line_height_point),
-                QtCore.QPoint(_line_end_point, _line_height_point)
+                QtCore.QPoint(_line_start_point * self.data.scale, _line_height_point * self.data.scale),
+                QtCore.QPoint(_line_end_point * self.data.scale, _line_height_point * self.data.scale)
             )
             painter.drawLine(line)
 
@@ -78,13 +78,13 @@ class PartitionWidget(QtWidgets.QWidget):
             # 垂直
             self.resize(_h, _w)
             line = QtCore.QLine(
-                QtCore.QPoint(self.data.margin, _line_start_point),
-                QtCore.QPoint(self.data.margin, _line_end_point)
+                QtCore.QPoint(self.data.margin * self.data.scale, _line_start_point * self.data.scale),
+                QtCore.QPoint(self.data.margin * self.data.scale, _line_end_point * self.data.scale)
             )
             painter.drawLine(line)
             if self.data.use_label is True:
                 painter.rotate(90)
-                _p = QtCore.QPoint(self.data.margin, -self.data.margin * 2 - round(self.data.line_width / 2))
+                _p = QtCore.QPoint(self.data.margin * self.data.scale, (-self.data.margin * 2 - round(self.data.line_width / 2)) * self.data.scale)
                 painter.drawText(_p, self.data.label)
 
 
@@ -104,6 +104,12 @@ def create(parent, data):
     widget.show()
     widget.move(data.position)
     return widget
+
+def update(widget, data):
+    font = widget.font()
+    font.setPointSize(data.label_font_size)
+
+    widget.move(data.position)
 
 
 def get_default():

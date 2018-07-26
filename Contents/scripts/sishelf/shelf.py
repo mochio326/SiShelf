@@ -222,8 +222,19 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if self._right_drag:
             data.position_x = self._right_drag_rect.x()
             data.position_y =self._right_drag_rect.y() - self.sizeHint().height()
-            data.width = self._right_drag_rect.width()
-            data.height = self._right_drag_rect.height()
+
+            _w = self._right_drag_rect.width()
+            _h = self._right_drag_rect.height()
+            if _w != 1 and _h != 1:
+                data.width = _w
+                data.height = _h
+            if self._shelf_option.snap_active:
+                if _w == 0:
+                    data.width = self._shelf_option.snap_width
+                if _h == 0:
+                    data.height = self._shelf_option.snap_height
+
+
             data.size_flag = True
         self.create_button(data)
         self.save_all_tab_data()
@@ -653,17 +664,37 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self._parts_moving = True
 
         if event.button() == QtCore.Qt.RightButton:
+            #スナップ機能の際は開始位置をいい感じに加工
+            self._origin = self.__right_drag_snap_pos(self._origin)
             self._band = QtCore.QRect()
             self._right_drag = True
 
         self.repaint()
+
+    def __right_drag_snap_pos(self, pos, mode='rect'):
+        if mode == 'rect':
+            _offset_pixel = -0
+        elif mode == 'create':
+            _offset_pixel = -1
+
+        # スナップ機能の際は終了位置をいい感じに加工
+        if self._shelf_option.snap_active:
+            _x = int(pos.x() / self._shelf_option.snap_width) * self._shelf_option.snap_width
+            _y = int(pos.y() / self._shelf_option.snap_height) * self._shelf_option.snap_height
+            pos = QtCore.QPoint(_x + _offset_pixel, _y + self.sizeHint().height() + _offset_pixel)
+        return pos
 
     def mouseMoveEvent(self, event):
         if self.edit_lock is True or self.currentWidget().reference is not None:
             return
 
         if self._band is not None:
-            self._band = QtCore.QRect(self._origin, event.pos())
+            pos = event.pos()
+            if self._right_drag:
+                #スナップ機能の際は終了位置をいい感じに加工
+                pos = self.__right_drag_snap_pos(pos)
+            self._band = QtCore.QRect(self._origin, pos)
+
         else:
             # パーツを移動中の描画更新
             if len(self._selected) > 0:
@@ -697,13 +728,12 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 #移動
                 self._selected_parts_move(event.pos())
             self.save_all_tab_data()
-            print 'save_all_tab_data'
 
         if event.button() == QtCore.Qt.RightButton:
             if not self._origin:
-                self._origin = event.pos()
-            rect = QtCore.QRect(self._origin, event.pos()).normalized()
-            #self._band = None
+                self._origin = self.__right_drag_snap_pos(event.pos(), mode='create')
+            pos = self.__right_drag_snap_pos(event.pos(), mode='create')
+            rect = QtCore.QRect(self._origin, pos).normalized()
             self._right_drag_rect = rect
 
         self._origin = QtCore.QPoint()
@@ -723,7 +753,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             painter.drawRect(self._band)
             painter.restore()
         # ガイドグリッドの描画
-        if self._parts_moving or self._parts_resizing:
+        if self._parts_moving or self._parts_resizing or self._right_drag:
                 if self._shelf_option.snap_active and self._shelf_option.snap_grid:
                     self._draw_snap_gide()
 
@@ -757,8 +787,21 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self._redo()
                 return
 
+
         if event.key() == QtCore.Qt.Key_Delete:
             self._delete()
+            return
+
+        if event.key() == QtCore.Qt.Key_Up:
+            _cw = self.currentWidget()
+            _cw.scale = _cw.scale + 0.05
+            _cw.set_scale()
+            return
+
+        if event.key() == QtCore.Qt.Key_Down:
+            _cw = self.currentWidget()
+            _cw.scale = _cw.scale - 0.05
+            _cw.set_scale()
             return
 
     # -----------------------
@@ -780,6 +823,11 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _parts_w = parts.data.width + _rect.width()
         _parts_h = parts.data.height + _rect.height()
 
+        if _parts_w < 10:
+            _parts_w = 10
+        if _parts_h < 10:
+            _parts_h = 10
+
         _parts_x = parts.data.position_x
         _parts_y = parts.data.position_y
 
@@ -790,10 +838,10 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             _parts_w = int(_parts_w / self._shelf_option.snap_width) * self._shelf_option.snap_width - _parts_x
             _parts_h = int(_parts_h / self._shelf_option.snap_height) * self._shelf_option.snap_height - _parts_y
 
-        if _parts_w < 10:
-            _parts_w = 10
-        if _parts_h < 10:
-            _parts_h = 10
+            if _parts_w == 0:
+                _parts_w = self._shelf_option.snap_width
+            if _parts_h == 0:
+                _parts_h = self._shelf_option.snap_height
 
         #_position = QtCore.QPoint(_x, _y)
         parts.setFixedSize(_parts_w, _parts_h)
@@ -916,7 +964,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         snap_unit_x = self._shelf_option.snap_width
         snap_unit_y = self._shelf_option.snap_height
-        _tab_h = self.sizeHint().height() - 4
+        _tab_h = self.sizeHint().height() - 0
 
         # 横線
         for i in range(self.height() / snap_unit_y):
@@ -925,7 +973,7 @@ class SiShelfWeight(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             painter.drawLine(line)
         # 縦線
         for i in range(self.width() / snap_unit_x + 1):
-            _w = snap_unit_x * i + 1
+            _w = snap_unit_x * i
             line = QtCore.QLine(QtCore.QPoint(_w, _tab_h), QtCore.QPoint(_w, self.height() + _tab_h))
             painter.drawLine(line)
         painter.restore()
@@ -935,6 +983,7 @@ class ShelfTabWeight(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(ShelfTabWeight, self).__init__(parent)
         self.reference = None
+        self.scale = 1
 
     def get_all_parts_dict(self):
         # 指定のタブ以下にあるパーツを取得
@@ -962,6 +1011,7 @@ class ShelfTabWeight(QtWidgets.QWidget):
                 _d = button.ButtonData()
                 for k, v in _var.items():
                     setattr(_d, k, v)
+                _d.scale = self.scale
                 button.create(self, _d)
 
         if data.get('partition') is not None:
@@ -970,6 +1020,7 @@ class ShelfTabWeight(QtWidgets.QWidget):
                 _d = partition.PartitionData()
                 for k, v in _var.items():
                     setattr(_d, k, v)
+                _d.scale = self.scale
                 partition.create(self, _d)
 
     def create_button_from_instance(self, ls):
@@ -999,6 +1050,14 @@ class ShelfTabWeight(QtWidgets.QWidget):
         for child in self.findChildren(partition.PartitionWidget):
             ls.append(child.data)
         return ls
+
+    def set_scale(self):
+        for _w in self.findChildren(button.ButtonWidget):
+            _w.data.scale = self.scale
+            button.update(_w, _w.data)
+        for _w in self.findChildren(partition.PartitionWidget):
+            _w.data.scale = self.scale
+            partition.update(_w, _w.data)
 
     def delete_parts(self, widget):
         widget.setParent(None)
