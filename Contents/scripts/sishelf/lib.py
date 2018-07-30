@@ -19,14 +19,25 @@ class PartsData(object):
         self.width = 100
         self.height = 50
 
-        self.position_offset_x = 0
-        self.position_offset_y = 0
-        self.scale = 1
+        # シェルフ全体操作用の位置オフセットとスケール値
+        # 一時操作用なのでパーツデータの方では保存しない
+        self.temp_position_offset_x = 0
+        self.temp_position_offset_y = 0
+        self.temp_scale = 1
+
+    def get_save_dict(self):
+        _dict = vars(self)
+        save_dict = {}
+        for _k, _v in _dict.items():
+            if 'temp_' in _k:
+                continue
+            save_dict[_k] = _v
+        return save_dict
 
     label_font_size = property(doc='label_font_size property')
     @label_font_size.getter
     def label_font_size(self):
-        return self._label_font_size * self.scale
+        return self._label_font_size * self.temp_scale
 
     @label_font_size.setter
     def label_font_size(self, size):
@@ -35,8 +46,8 @@ class PartsData(object):
     position = property(doc='position property')
     @position.getter
     def position(self):
-        _x = (self.position_x + self.position_offset_x) * self.scale
-        _y = (self.position_y + self.position_offset_y) * self.scale
+        _x = self.position_x * self.temp_scale + self.temp_position_offset_x
+        _y = self.position_y * self.temp_scale + self.temp_position_offset_y
         return QtCore.QPoint(_x , _y)
 
     @position.setter
@@ -49,7 +60,7 @@ class PartsData(object):
     def size(self):
         if self.size_flag is False:
             return None
-        return QtCore.QSize(self.width * self.scale, self.height * self.scale)
+        return QtCore.QSize(self.width * self.temp_scale, self.height * self.temp_scale)
 
 
 def button_css(buttons, css):

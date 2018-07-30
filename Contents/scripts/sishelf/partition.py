@@ -66,8 +66,8 @@ class PartitionWidget(QtWidgets.QWidget):
                 _line_height_point = self.data.margin + round(self.data.line_width / 2)
 
             line = QtCore.QLine(
-                QtCore.QPoint(_line_start_point * self.data.scale, _line_height_point * self.data.scale),
-                QtCore.QPoint(_line_end_point * self.data.scale, _line_height_point * self.data.scale)
+                QtCore.QPoint(_line_start_point * self.data.temp_scale, _line_height_point * self.data.temp_scale),
+                QtCore.QPoint(_line_end_point * self.data.temp_scale, _line_height_point * self.data.temp_scale)
             )
             painter.drawLine(line)
 
@@ -78,13 +78,13 @@ class PartitionWidget(QtWidgets.QWidget):
             # 垂直
             self.resize(_h, _w)
             line = QtCore.QLine(
-                QtCore.QPoint(self.data.margin * self.data.scale, _line_start_point * self.data.scale),
-                QtCore.QPoint(self.data.margin * self.data.scale, _line_end_point * self.data.scale)
+                QtCore.QPoint(self.data.margin * self.data.temp_scale, _line_start_point * self.data.temp_scale),
+                QtCore.QPoint(self.data.margin * self.data.temp_scale, _line_end_point * self.data.temp_scale)
             )
             painter.drawLine(line)
             if self.data.use_label is True:
                 painter.rotate(90)
-                _p = QtCore.QPoint(self.data.margin * self.data.scale, (-self.data.margin * 2 - round(self.data.line_width / 2)) * self.data.scale)
+                _p = QtCore.QPoint(self.data.margin * self.data.temp_scale, (-self.data.margin * 2 - round(self.data.line_width / 2)) * self.data.temp_scale)
                 painter.drawText(_p, self.data.label)
 
 
