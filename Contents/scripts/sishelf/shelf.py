@@ -38,7 +38,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def __init__(self, parent=None, load_file=None, edit_lock=False):
         super(SiShelfWidget, self).__init__(parent)
-        #メモリ管理的おまじない
+        # メモリ管理的おまじない
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         # オブジェクト名とタイトルの変更
@@ -54,20 +54,22 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         self.load_all_tab_data()
 
+        self.band = None
+        self.right_drag_rect = None
+        self.right_drag = False
+        self.parts_moving = False
+        self.parts_resizing = False
+
         self._origin = None
-        self._band = None
-        self._right_drag = False
         self._selected = []
         self._floating_save = False
         self._clipboard = None
         self._context_pos = QtCore.QPoint()
         self._cut_flag = False
-        self._parts_moving = False
-        self._parts_resizing = False
         self._shelf_option = shelf_option.OptionData()
         self._operation_history = [self._get_all_tab_data()]
         self._current_operation_history = 0
-        self._right_drag_rect = None
+        self._parts_resize_mode = None
 
         self._set_stylesheet()
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -129,9 +131,9 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         # マウス位置に出現
         cursor = QtGui.QCursor.pos()
         _menu.exec_(cursor)
-        if self._right_drag:
-            self._right_drag = False
-            self._band = None
+        if self.right_drag:
+            self.right_drag = False
+            self.band = None
             self.repaint()
 
 
@@ -218,14 +220,13 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _add_button(self):
         data = button.get_default()
-        print  data.position
         data.position = self._context_pos
-        if self._right_drag:
-            data.position_x = self._right_drag_rect.x()
-            data.position_y =self._right_drag_rect.y() - self.sizeHint().height()
+        if self.right_drag:
+            data.position_x = self.right_drag_rect.x()
+            data.position_y =self.right_drag_rect.y() - self.sizeHint().height()
 
-            _w = self._right_drag_rect.width()
-            _h = self._right_drag_rect.height()
+            _w = self.right_drag_rect.width()
+            _h = self.right_drag_rect.height()
             if _w != 1 and _h != 1:
                 data.width = _w
                 data.height = _h
@@ -602,8 +603,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             event.setDropAction(QtCore.Qt.MoveAction)
             event.accept()
 
-        self._parts_moving = False
-        self._parts_resizing = False
+        self.parts_moving = False
+        self.parts_resizing = False
         self.repaint()
 
     def dragMoveEvent(self, event):
@@ -611,10 +612,10 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
         # パーツを移動中の描画更新
         if len(self._selected) > 0:
-            if self._parts_resizing:
+            if self.parts_resizing:
                 # リサイズ
                 self._selected_parts_resize(event.pos(), False, False)
-            if self._parts_moving:
+            if self.parts_moving:
                 self._selected_parts_move(event.pos(), False, False)
 
         self.repaint()
@@ -638,8 +639,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if self.edit_lock is True or self.currentWidget().reference is not None:
             return
 
-        self._parts_resizing = False
-        self._parts_moving = False
+        self.parts_resizing = False
+        self.parts_moving = False
         self._offset_position_change = False
         self._scale_change = False
 
@@ -653,7 +654,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 _cw = self.currentWidget()
                 self._offset_position_x_temp = _cw.position_offset_x
                 self._offset_position_y_temp = _cw.position_offset_y
-                self._band = None
+                self.band = None
                 return
             # 画面全体の表示スケール変更
             if event.button() == QtCore.Qt.RightButton:
@@ -662,19 +663,14 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self._offset_position_x_temp = _cw.position_offset_x
                 self._offset_position_y_temp = _cw.position_offset_y
                 self._scale_temp = _cw.scale
-                self._band = None
+                self.band = None
                 return
 
         if event.button() == QtCore.Qt.LeftButton:
-            self._band = QtCore.QRect()
-            self._right_drag = False
+            self.band = QtCore.QRect()
+            self.right_drag = False
 
         if event.button() == QtCore.Qt.MiddleButton:
-
-            #現在のカーソルを取得
-            cursor = QtWidgets.QApplication.overrideCursor()
-            if cursor is not None:
-                print cursor.shape()
 
             self._select_cursor_pos_parts()
             if len(self._selected) <= 1:
@@ -682,15 +678,17 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
             modifiers = QtWidgets.QApplication.keyboardModifiers()
             if modifiers == QtCore.Qt.ControlModifier:
-                self._parts_resizing = True
+                self.parts_resizing = True
+                self._parts_resize_mode = button.resize_mode
             else:
-                self._parts_moving = True
+                self.parts_moving = True
+
 
         if event.button() == QtCore.Qt.RightButton:
-            #スナップ機能の際は開始位置をいい感じに加工
+            # スナップ機能の際は開始位置をいい感じに加工
             self._origin = self.__right_drag_snap_pos(self._origin)
-            self._band = QtCore.QRect()
-            self._right_drag = True
+            self.band = QtCore.QRect()
+            self.right_drag = True
 
         self.repaint()
 
@@ -711,20 +709,20 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if self.edit_lock is True or self.currentWidget().reference is not None:
             return
 
-        if self._band is not None:
+        if self.band is not None:
             pos = event.pos()
-            if self._right_drag:
-                #スナップ機能の際は終了位置をいい感じに加工
+            if self.right_drag:
+                # スナップ機能の際は終了位置をいい感じに加工
                 pos = self.__right_drag_snap_pos(pos)
-            self._band = QtCore.QRect(self._origin, pos)
+            self.band = QtCore.QRect(self._origin, pos)
 
         else:
             # パーツを移動中の描画更新
             if len(self._selected) > 0:
-                if self._parts_resizing:
+                if self.parts_resizing:
                     # リサイズ
                     self._selected_parts_resize(event.pos(), False, False)
-                if self._parts_moving:
+                if self.parts_moving:
                     self._selected_parts_move(event.pos(), False, False)
 
         if self._offset_position_change:
@@ -736,11 +734,11 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             _cw.set_move_and_scale()
 
         if self._scale_change:
-            #仮。正式には移動距離をとる
+            # 仮。正式には移動距離をとる
             _x = self._origin.x() - event.pos().x()
             _cw = self.currentWidget()
             _cw.scale = self._scale_temp + 0.01 * _x
-            #ドラッグしたポイントを基準に拡縮するためのいい感じの式
+            # ドラッグしたポイントを基準に拡縮するためのいい感じの式
             _cw.position_offset_x = self._offset_position_x_temp + self._origin.x() * (self._scale_temp - _cw.scale)
             _cw.position_offset_y = self._offset_position_y_temp + (self._origin.y() - self.sizeHint().height()) * (self._scale_temp - _cw.scale)
             _cw.set_move_and_scale()
@@ -757,16 +755,15 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             rect = QtCore.QRect(self._origin, event.pos()).normalized()
             self._get_parts_in_rectangle(rect)
             self._set_stylesheet()
-            self._band = None
+            self.band = None
 
         # 選択中のパーツを移動/リサイズ
         if event.button() == QtCore.Qt.MiddleButton:
-        #if event.button() == QtCore.Qt.RightButton:
-            if self._parts_resizing:
-                #リサイズ
+            if self.parts_resizing:
+                # リサイズ
                 self._selected_parts_resize(event.pos())
-            if self._parts_moving:
-                #移動
+            if self.parts_moving:
+                # 移動
                 self._selected_parts_move(event.pos())
             self.save_all_tab_data()
 
@@ -775,15 +772,20 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self._origin = self.__right_drag_snap_pos(event.pos(), mode='create')
             pos = self.__right_drag_snap_pos(event.pos(), mode='create')
             rect = QtCore.QRect(self._origin, pos).normalized()
-            self._right_drag_rect = rect
+            self.right_drag_rect = rect
 
         self._origin = QtCore.QPoint()
-        self._parts_moving = False
-        self._parts_resizing = False
+        self.parts_moving = False
+        self.parts_resizing = False
         self.repaint()
 
     def paintEvent(self, event):
-        pass
+        _cw = self.currentWidget()
+        # 矩形範囲、スナップガイドの描画（必要な時だけ上部に描画）
+        if self.band is not None or self.parts_moving or self.parts_resizing or self.right_drag:
+            _cw.create_guide_widget()
+        else:
+            _cw.delete_guide_widget()
 
     def closeEvent(self, event):
         if self.edit_lock is False:
@@ -823,7 +825,9 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # Others
     # -----------------------
     def _selected_parts_resize(self, after_pos, save=True, data_pos_update=True):
-        # 選択中のパーツを移動
+        if self._parts_resize_mode is None:
+            return
+        # 選択中のパーツをリサイズ
         if len(self._selected) > 0:
             for p in self._selected:
                 self._parts_resize(p, after_pos, data_pos_update)
@@ -832,19 +836,46 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self.save_all_tab_data()
 
     def _parts_resize(self, parts, after_pos, data_pos_update=True):
-
-        # ドラッグ中に移動した相対位置を加算
-        _rect = QtCore.QRect(self._origin, after_pos)
-        _parts_w = parts.data.width + _rect.width()
-        _parts_h = parts.data.height + _rect.height()
-
-        if _parts_w < 10:
-            _parts_w = 10
-        if _parts_h < 10:
-            _parts_h = 10
+        if self._parts_resize_mode is None:
+            return
 
         _parts_x = parts.data.position_x
         _parts_y = parts.data.position_y
+        _parts_w = parts.data.width
+        _parts_h = parts.data.height
+
+        # ドラッグ中に移動した相対位置を加算
+        _rect = QtCore.QRect(self._origin, after_pos)
+
+        if 'right' in self._parts_resize_mode:
+            _parts_w += _rect.width()
+
+        if 'left' in self._parts_resize_mode:
+            _parts_w -= _rect.width()
+            _parts_x += _rect.width()
+
+        if 'bottom' in self._parts_resize_mode:
+            _parts_h += _rect.height()
+
+        if 'top' in self._parts_resize_mode:
+            _parts_y += _rect.height()
+            _parts_h -= _rect.height()
+
+        # サイズがマイナスになるとボタンが反転するような動きになるようにする
+        if _parts_w < 0:
+            _parts_w = abs(_parts_w)
+            if 'right' in self._parts_resize_mode:
+                _parts_x += _rect.width() + parts.data.width
+            if 'left' in self._parts_resize_mode:
+                _parts_x -= _rect.width() - parts.data.width
+
+        if _parts_h < 0:
+            _parts_h = abs(_parts_h)
+            if 'bottom' in self._parts_resize_mode:
+                _parts_y += _rect.height() + parts.data.height
+            if 'top' in self._parts_resize_mode:
+                _parts_y -= _rect.height() - parts.data.height
+
 
         if self._shelf_option.snap_active is True:
             _parts_x = int(_parts_x % self._shelf_option.snap_width)
@@ -858,9 +889,12 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             if _parts_h == 0:
                 _parts_h = self._shelf_option.snap_height
 
-        #_position = QtCore.QPoint(_x, _y)
+        parts.move(QtCore.QPoint(_parts_x, _parts_y))
         parts.setFixedSize(_parts_w, _parts_h)
-        if data_pos_update is True:
+
+        if data_pos_update:
+            parts.data.position_x = _parts_x
+            parts.data.position_y = _parts_y
             parts.data.width = _parts_w
             parts.data.height = _parts_h
 
@@ -1001,26 +1035,26 @@ class GuidePaintWidget(QtWidgets.QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         self.shelf = _get_parent_shelf_widget(self)
         self._shelf_option = shelf_option.OptionData()
+        self.band_temp = None
 
     def paintEvent(self, event):
         # 矩形範囲の描画
-        if self.shelf._band is not None:
-            self._band_temp = copy.deepcopy(self.shelf._band)
-            self._band_temp.setY(self._band_temp.y() - self._shelf_option.tab_height - 2)
-            self._band_temp.setHeight(self._band_temp.height() - self._shelf_option.tab_height - 2)
+        if self.shelf.band is not None:
+            self.band_temp = copy.deepcopy(self.shelf.band)
+            self.band_temp.setY(self.band_temp.y() - self._shelf_option.tab_height - 2)
+            self.band_temp.setHeight(self.band_temp.height() - self._shelf_option.tab_height - 2)
 
             painter = QtGui.QPainter(self)
             color = QtGui.QColor(255, 255, 255, 125)
             pen = QtGui.QPen(color, self.PEN_WIDTH)
             painter.setPen(pen)
-            if self.shelf._right_drag:
+            if self.shelf.right_drag:
                 painter.setBrush(QtGui.QBrush(QtCore.Qt.lightGray, QtCore.Qt.BDiagPattern))
-            painter.drawRect(self._band_temp)
+            painter.drawRect(self.band_temp)
             painter.restore()
 
-
         # ガイドグリッドの描画
-        if self.shelf._parts_moving or self.shelf._parts_resizing or self.shelf._right_drag:
+        if self.shelf.parts_moving or self.shelf.parts_resizing or self.shelf.right_drag:
                 if self._shelf_option.snap_active and self._shelf_option.snap_grid:
                     self._draw_snap_gide()
 
@@ -1034,7 +1068,6 @@ class GuidePaintWidget(QtWidgets.QWidget):
 
         snap_unit_x = self._shelf_option.snap_width
         snap_unit_y = self._shelf_option.snap_height
-        _tab_h = self._shelf_option.tab_height - 0
 
         # 横線
         for i in range(self.height() / snap_unit_y):
@@ -1101,12 +1134,23 @@ class ShelfTabWidget(QtWidgets.QWidget):
                 _d.scale = self.scale
                 partition.create(self, _d)
 
+        # 常にガイドウィジェットを表示しているとボタン等のホバーイベントが実行されないので
+        # 必要な際にのみ表示を行う
         self.guide_widget = GuidePaintWidget(self)
         self.layout = QtWidgets.QHBoxLayout()
-        self.layout.addWidget(self.guide_widget)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
+    def create_guide_widget(self):
+        if self.guide_widget is None:
+            self.guide_widget = GuidePaintWidget(self)
+            self.layout.addWidget(self.guide_widget)
+
+    def delete_guide_widget(self):
+        if self.guide_widget is not None:
+            self.guide_widget.setParent(None)
+            self.guide_widget.deleteLater()
+            self.guide_widget = None
 
     def create_button_from_instance(self, ls):
         for _l in ls:

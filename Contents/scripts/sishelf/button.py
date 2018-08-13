@@ -5,6 +5,8 @@ import maya.cmds as cmds
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from . import lib
 
+resize_mode = None
+
 
 class ButtonWidget(QtWidgets.QToolButton):
 
@@ -15,17 +17,14 @@ class ButtonWidget(QtWidgets.QToolButton):
         self.preview = preview
         self.installEventFilter(self)
 
-
     def eventFilter(self, obj, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ControlModifier:
             set_cursor_icon(self, event)
         else:
             QtWidgets.QApplication.restoreOverrideCursor()
-        #↓これがないと起動時にエラー吐くらしい。実害はないけど。
+        # ↓これがないと起動時にエラー吐くらしい。実害はないけど。
         return False
-
-
 
     def mouseMoveEvent(self, event):
         # 中クリックだけドラッグ＆ドロップ可能にする
@@ -37,8 +36,6 @@ class ButtonWidget(QtWidgets.QToolButton):
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimedata)
         drag.exec_(QtCore.Qt.MoveAction)
-
-
 
     def mousePressEvent(self, event):
         QtWidgets.QToolButton.mousePressEvent(self, event)
@@ -115,7 +112,6 @@ class ButtonData(lib.PartsData):
         self.xpop_visibility = True
         self.xpop_spacer = False
 
-
     icon = property(doc='icon property')
     @icon.getter
     def icon(self):
@@ -186,6 +182,7 @@ def update(widget, data):
 
     widget.move(data.position)
 
+
 def readfile(path):
     if os.path.exists(path) is False:
         return ''
@@ -207,10 +204,10 @@ def get_default():
 
 def make_menu_button_dict():
     return {'label':' test001',
-    'use_externalfile':False,
-    'externalfile':'',
-    'code':'',
-    'script_language':'Python'
+    'use_externalfile': False,
+    'externalfile': '',
+    'code': '',
+    'script_language': 'Python'
     }
 
 
@@ -255,7 +252,7 @@ def normal_data_context(menu, data):
         '''
 
 
-def mouse_pressed(widget, pos):
+def get_resize_mode(widget, pos):
     hit_size = 10
     mc_x = pos.x()
     mc_y = pos.y()
@@ -282,23 +279,25 @@ def mouse_pressed(widget, pos):
         resize_mode = 'bottom_left'
     return resize_mode
 
-#ウィンドウサイズ切り替え位置でカーソル変更する
+
+# ウィンドウサイズ切り替え位置でカーソル変更する
 def set_cursor_icon(widget, event):
+    global resize_mode
     if event.type() == QtCore.QEvent.Type.Enter:
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.ArrowCursor)
     if event.type() == QtCore.QEvent.Type.HoverMove:
         pos = event.pos()
-        resize_mode = mouse_pressed(widget, pos)
+        resize_mode = get_resize_mode(widget, pos)
         cur_dict = {
-                        'right':QtCore.Qt.SizeHorCursor,
-                         'left':QtCore.Qt.SizeHorCursor,
-                         'top':QtCore.Qt.SizeVerCursor,
-                         'bottom':QtCore.Qt.SizeVerCursor,
-                         'top_left':QtCore.Qt.SizeFDiagCursor,
-                         'bottom_right':QtCore.Qt.SizeFDiagCursor,
-                         'top_right':QtCore.Qt.SizeBDiagCursor,
-                         'bottom_left':QtCore.Qt.SizeBDiagCursor,
-                         None:QtCore.Qt.ArrowCursor
+                        'right': QtCore.Qt.SizeHorCursor,
+                         'left': QtCore.Qt.SizeHorCursor,
+                         'top': QtCore.Qt.SizeVerCursor,
+                         'bottom': QtCore.Qt.SizeVerCursor,
+                         'top_left': QtCore.Qt.SizeFDiagCursor,
+                         'bottom_right': QtCore.Qt.SizeFDiagCursor,
+                         'top_right': QtCore.Qt.SizeBDiagCursor,
+                         'bottom_left': QtCore.Qt.SizeBDiagCursor,
+                         None: QtCore.Qt.ArrowCursor
                             }
         cur = cur_dict[resize_mode]
         if QtWidgets.QApplication.overrideCursor() is None:
@@ -306,11 +305,12 @@ def set_cursor_icon(widget, event):
         current_cur = QtWidgets.QApplication.overrideCursor().shape()
         if cur != current_cur:
             QtWidgets.QApplication.changeOverrideCursor(cur_dict[resize_mode])
-    #UI外に出たときは元のMaya標準カーソルに戻す
+    # UI外に出たときは元のMaya標準カーソルに戻す
     if event.type() == QtCore.QEvent.Type.Leave:
         QtWidgets.QApplication.restoreOverrideCursor()
+        resize_mode = None
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # EOF
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------

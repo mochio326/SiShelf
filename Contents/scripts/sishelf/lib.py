@@ -9,6 +9,7 @@ import re
 
 TITLE = "SiShelf"
 
+
 class PartsData(object):
     def __init__(self):
         self.use_label = True
