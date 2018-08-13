@@ -878,53 +878,63 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         # スナップ時の計算。フリップしたかどうかでちょっとずつ計算変わる。。。
         if self._shelf_option.snap_active is True:
+            # 位置は固定、横幅だけ変化
+            def resize_w():
+                _surplus_x = int(_parts_x % self._shelf_option.snap_width)
+                w = int(
+                    _parts_w / self._shelf_option.snap_width) * self._shelf_option.snap_width - _surplus_x
+                if w == 0:
+                    w = self._shelf_option.snap_width
+                return w
+
+            # 位置も横幅も変化
+            def resize_x():
+                x = int(
+                    _parts_x / self._shelf_option.snap_width) * self._shelf_option.snap_width
+                w = parts.data.position_x - x
+                return x, w
+
+            # 位置は固定、縦幅だけ変化
+            def resize_h():
+                _surplus_y = int(_parts_y % self._shelf_option.snap_height)
+                h = int(
+                    _parts_h / self._shelf_option.snap_height) * self._shelf_option.snap_height - _surplus_y
+                if h == 0:
+                    h = self._shelf_option.snap_height
+                return h
+
+            # 位置も縦も変化
+            def resize_y():
+                y = int(
+                    _parts_y / self._shelf_option.snap_height) * self._shelf_option.snap_height
+                h = parts.data.position_y - y
+                return y, h
+
             if 'right' in self._parts_resize_mode:
                 if _parts_x != parts.data.position_x:
-                    _parts_x = int(
-                        _parts_x / self._shelf_option.snap_width) * self._shelf_option.snap_width
-                    _parts_w = parts.data.position_x - _parts_x
+                    _parts_x, _parts_w = resize_x()
                 else:
-                    _surplus_x = int(_parts_x % self._shelf_option.snap_width)
-                    _parts_w = int(
-                        _parts_w / self._shelf_option.snap_width) * self._shelf_option.snap_width - _surplus_x
-                    if _parts_w == 0:
-                        _parts_w = self._shelf_option.snap_width
+                    _parts_w = resize_w()
 
             if 'left' in self._parts_resize_mode:
                 if _parts_x != parts.data.position_x and _flip_w is False:
-                    _parts_x = int(
-                        _parts_x / self._shelf_option.snap_width) * self._shelf_option.snap_width
-                    _parts_w = parts.data.width + parts.data.position_x - _parts_x
+                    _parts_x, _parts_w = resize_x()
+                    _parts_w += parts.data.width
                 else:
-                    _surplus_x = int(_parts_x % self._shelf_option.snap_width)
-                    _parts_w = int(
-                        _parts_w / self._shelf_option.snap_width) * self._shelf_option.snap_width - _surplus_x
-                    if _parts_w == 0:
-                        _parts_w = self._shelf_option.snap_width
+                    _parts_w = resize_w()
 
             if 'bottom' in self._parts_resize_mode:
                 if _parts_y != parts.data.position_y:
-                    _parts_y = int(
-                        _parts_y / self._shelf_option.snap_height) * self._shelf_option.snap_height
-                    _parts_h = parts.data.position_y - _parts_y
+                    _parts_y, _parts_h = resize_y()
                 else:
-                    _surplus_y = int(_parts_y % self._shelf_option.snap_height)
-                    _parts_h = int(
-                        _parts_h / self._shelf_option.snap_height) * self._shelf_option.snap_height - _surplus_y
-                    if _parts_h == 0:
-                        _parts_h = self._shelf_option.snap_height
+                    _parts_h = resize_h()
 
             if 'top' in self._parts_resize_mode:
                 if _parts_y != parts.data.position_y and _flip_h is False:
-                    _parts_y = int(
-                        _parts_y / self._shelf_option.snap_height) * self._shelf_option.snap_height
-                    _parts_h = parts.data.height + parts.data.position_y - _parts_y
+                    _parts_y, _parts_h = resize_y()
+                    _parts_h += parts.data.height
                 else:
-                    _surplus_y = int(_parts_y % self._shelf_option.snap_height)
-                    _parts_h = int(
-                        _parts_h / self._shelf_option.snap_height) * self._shelf_option.snap_height - _surplus_y
-                    if _parts_h == 0:
-                        _parts_h = self._shelf_option.snap_height
+                    _parts_h = resize_h()
 
         parts.move(QtCore.QPoint(_parts_x, _parts_y))
         parts.setFixedSize(_parts_w, _parts_h)
