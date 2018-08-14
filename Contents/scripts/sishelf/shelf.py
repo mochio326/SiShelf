@@ -76,6 +76,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.customContextMenuRequested.connect(self._context_menu)
         self.currentChanged.connect(self._current_tab_change)
         self.tabBar().tabMoved.connect(self._tab_moved)
+        self._regeneration_all_tab()
 
     def _current_tab_change(self):
         self._selected = []
@@ -136,9 +137,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.band = None
             self.repaint()
 
-
     def _info(self):
-        _status = QtWidgets.QMessageBox.information(
+        QtWidgets.QMessageBox.information(
             self, 'Version information',
             'SiShelf ' + self.VAR,
             QtWidgets.QMessageBox.Ok,
@@ -236,8 +236,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 if _h == 0:
                     data.height = self._shelf_option.snap_height
 
-
             data.size_flag = True
+
         self.create_button(data)
         self.save_all_tab_data()
         self._set_stylesheet()
@@ -318,21 +318,29 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return
 
         self._current_operation_history = self._current_operation_history + _add
-
-        self.currentChanged.disconnect()
-
-        for _c in range(self.count()):
-            self.removeTab(_c)
-
         data = self._operation_history[self._current_operation_history]
-        self._make_json_data_to_tab(data)
-        self.currentChanged.connect(self._current_tab_change)
-        self._set_stylesheet()
-        self.save_all_tab_data(save_history=False)
+        self._regeneration_all_tab(data)
 
     # -----------------------
     # Tab
     # -----------------------
+    def _regeneration_all_tab(self, data=None, save_history=False):
+        # 作ったばかりのタブの関数が動作しないことがなぜかあるので、その場合用にタブを作り直す
+        if data is None:
+            data = self._get_all_tab_data()
+        self.currentChanged.disconnect()
+        self._delete_all_tab()
+        self._make_json_data_to_tab(data)
+        self.currentChanged.connect(self._current_tab_change)
+        self._set_stylesheet()
+        self.save_all_tab_data(save_history=save_history)
+
+    def _delete_all_tab(self):
+        # 逆順で消さないとタブが残る
+        _tab_count = self.count()
+        for _c in range(_tab_count)[::-1]:
+            self.removeTab(_c)
+
     def _delete_tab(self):
         if self.count() == 1:
             return
@@ -344,7 +352,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         )
         if _status == QtWidgets.QMessageBox.Yes:
             self.removeTab(self.currentIndex())
-            self.save_all_tab_data()
+            # ここで記録しなくても消した後のtab changeで記録されるので問題なし
+            # self.save_all_tab_data()
         else:
             return
 
@@ -374,6 +383,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.insertTab(self.count() + 1, ShelfTabWidget(), new_tab_name)
         self.setCurrentIndex(self.count() + 1)
         self.save_all_tab_data()
+        self._regeneration_all_tab()
 
     def _export_tab(self):
         file_name = QtWidgets.QFileDialog.getSaveFileName(
@@ -522,7 +532,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         if not save_history:
             return
-        #Undo Redo用の操作
+        # Undo Redo用の操作
         if self._current_operation_history > 0:
             del self._operation_history[0:self._current_operation_history]
         self._operation_history.insert(0, ls)
@@ -682,7 +692,6 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self._parts_resize_mode = button.resize_mode
             else:
                 self.parts_moving = True
-
 
         if event.button() == QtCore.Qt.RightButton:
             # スナップ機能の際は開始位置をいい感じに加工
@@ -880,8 +889,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if self._shelf_option.snap_active is True:
             # 位置は固定、横幅だけ変化
             def resize_w():
-                _surplus_x = int(_parts_x % self._shelf_option.snap_width)
-                w = int(
+                _surplus_x = round(_parts_x % self._shelf_option.snap_width)
+                w = round(
                     _parts_w / self._shelf_option.snap_width) * self._shelf_option.snap_width - _surplus_x
                 if w == 0:
                     w = self._shelf_option.snap_width
@@ -889,15 +898,15 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
             # 位置も横幅も変化
             def resize_x():
-                x = int(
+                x = round(
                     _parts_x / self._shelf_option.snap_width) * self._shelf_option.snap_width
                 w = parts.data.position_x - x
                 return x, w
 
             # 位置は固定、縦幅だけ変化
             def resize_h():
-                _surplus_y = int(_parts_y % self._shelf_option.snap_height)
-                h = int(
+                _surplus_y = round(_parts_y % self._shelf_option.snap_height)
+                h = round(
                     _parts_h / self._shelf_option.snap_height) * self._shelf_option.snap_height - _surplus_y
                 if h == 0:
                     h = self._shelf_option.snap_height
@@ -905,7 +914,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
             # 位置も縦も変化
             def resize_y():
-                y = int(
+                y = round(
                     _parts_y / self._shelf_option.snap_height) * self._shelf_option.snap_height
                 h = parts.data.position_y - y
                 return y, h
