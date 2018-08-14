@@ -30,12 +30,17 @@ class ButtonWidget(QtWidgets.QToolButton):
         # 中クリックだけドラッグ＆ドロップ可能にする
         if event.buttons() != QtCore.Qt.MidButton:
             return
-
         # ドラッグ＆ドロップされるデータ形式を代入
         mimedata = QtCore.QMimeData()
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimedata)
         drag.exec_(QtCore.Qt.MoveAction)
+
+        # ドラッグでの移動やリサイズの際はボタンを離した瞬間にここを通るらしく
+        # なにもしないとshelf側のボタンリリースイベントが走らず、状態が保存されないエラーが出てしまうので
+        # 意図的に呼ぶことで回避している
+        shelf = self.parent.parent().parent()
+        shelf.mouseReleaseEvent(event)
 
     def mousePressEvent(self, event):
         QtWidgets.QToolButton.mousePressEvent(self, event)
@@ -66,6 +71,7 @@ class ButtonWidget(QtWidgets.QToolButton):
                 lib.script_execute(code, source_type)
             else:
                 self._context_menu()
+
         QtWidgets.QToolButton.mouseReleaseEvent(self, event)
 
     def _context_menu(self):

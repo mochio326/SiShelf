@@ -755,8 +755,11 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.repaint()
 
     def mouseReleaseEvent(self, event):
+
         if self.edit_lock is True or self.currentWidget().reference is not None:
             return
+
+        print event.button()
 
         if event.button() == QtCore.Qt.LeftButton:
             if not self._origin:
@@ -767,13 +770,15 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.band = None
 
         # 選択中のパーツを移動/リサイズ
-        if event.button() == QtCore.Qt.MiddleButton:
+        # ボタン上でドラッグした場合にはQtCore.Qt.NoButtonが戻ってくる
+        if event.button() == QtCore.Qt.MiddleButton or event.button() == QtCore.Qt.NoButton:
             if self.parts_resizing:
                 # リサイズ
                 self._selected_parts_resize(event.pos())
             if self.parts_moving:
                 # 移動
                 self._selected_parts_move(event.pos())
+
             self.save_all_tab_data()
 
         if event.button() == QtCore.Qt.RightButton:
@@ -1227,12 +1232,24 @@ class ShelfTabWidget(QtWidgets.QWidget):
     def get_all_button(self):
         ls = []
         for child in self.findChildren(button.ButtonWidget):
+            # 子widget上でドラッグイベントを開始した際などに位置・サイズの情報が伝達しない場合があるようなので
+            # ここで入れなおしておく
+            child.data.position_x = child.x()
+            child.data.position_y = child.y()
+            child.data.width = child.width()
+            child.data.height = child.height()
             ls.append(child.data)
         return ls
 
     def get_all_partition(self):
         ls = []
         for child in self.findChildren(partition.PartitionWidget):
+            # 子widget上でドラッグイベントを開始した際などに位置・サイズの情報が伝達しない場合があるようなので
+            # ここで入れなおしておく
+            child.data.position_x = child.x()
+            child.data.position_y = child.y()
+            child.data.width = child.width()
+            child.data.height = child.height()
             ls.append(child.data)
         return ls
 
