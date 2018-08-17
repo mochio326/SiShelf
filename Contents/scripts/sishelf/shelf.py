@@ -1131,7 +1131,7 @@ class GuidePaintWidget(QtWidgets.QWidget):
         snap_unit_y = self._shelf_option.snap_height
 
         # 横線
-        for i in range(self.height() / snap_unit_y):
+        for i in range(self.height() / snap_unit_y + 1):
             _h = snap_unit_y * i
             line = QtCore.QLine(QtCore.QPoint(0, _h), QtCore.QPoint(self.width(), _h))
             painter.drawLine(line)
@@ -1150,6 +1150,7 @@ class ShelfTabWidget(QtWidgets.QWidget):
         self.reference = None
         self.bg_widget = None
         self.guide_widget = None
+        self.layout = None
         self.scale = 1
         self.position_offset_x = 0
         self.position_offset_y = 0
@@ -1195,17 +1196,11 @@ class ShelfTabWidget(QtWidgets.QWidget):
                 _d.scale = self.scale
                 partition.create(self, _d)
 
-        # 常にガイドウィジェットを表示しているとボタン等のホバーイベントが実行されないので
-        # 必要な際にのみ表示を行う
-        self.guide_widget = GuidePaintWidget(self)
-        self.layout = QtWidgets.QHBoxLayout()
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(self.layout)
-
     def create_guide_widget(self):
         if self.guide_widget is None:
             self.guide_widget = GuidePaintWidget(self)
-            self.layout.addWidget(self.guide_widget)
+            self.guide_widget.setFixedSize(QtCore.QSize(self.width(), self.height()))
+            self.guide_widget.show()
 
     def delete_guide_widget(self):
         if self.guide_widget is not None:
