@@ -1,4 +1,4 @@
-## -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from . import button_setting
 from . import button
@@ -22,11 +22,10 @@ if lib.maya_version() < 2015:
 elif lib.maya_version() < 2017:
     from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
-elif 2017 <= lib.maya_version() and lib.maya_version() < 2019:
+elif 2017 <= lib.maya_version() < 2019:
     # TODO: 新バージョンが出たら確認すること
     from .patch import m2017
     MayaQWidgetDockableMixin = m2017.MayaQWidgetDockableMixin2017
-
 else:
     from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
