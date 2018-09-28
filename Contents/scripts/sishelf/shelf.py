@@ -7,6 +7,7 @@ from . import partition_setting
 from . import lib
 from . import shelf_option
 from . import xpop
+from . import multi_edit
 
 import json
 import os
@@ -58,9 +59,11 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.right_drag = False
         self.parts_moving = False
         self.parts_resizing = False
+        self.multi_edit_view = None
+        self.selected = None
+        self.reset_selected()
 
         self._origin = None
-        self._selected = []
         self._floating_save = False
         self._clipboard = None
         self._context_pos = QtCore.QPoint()
@@ -70,7 +73,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self._current_operation_history = 0
         self._parts_resize_mode = None
 
-        self._set_stylesheet()
+        self.set_stylesheet()
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._context_menu)
         self.currentChanged.connect(self._current_tab_change)
@@ -78,8 +81,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self._regeneration_all_tab()
 
     def _current_tab_change(self):
-        self._selected = []
-        self._set_stylesheet()
+        self.reset_selected()
+        self.set_stylesheet()
         self.update()
         self.save_all_tab_data()
 
@@ -146,10 +149,10 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _option(self):
         self._shelf_option = shelf_option.OptionDialog.open(self)
-        self._set_stylesheet()
+        self.set_stylesheet()
 
     def _copy(self):
-        self._clipboard = copy.deepcopy(self._selected[0].data)
+        self._clipboard = copy.deepcopy(self.selected[0].data)
 
     def _paste(self):
         if self._clipboard is None:
@@ -162,10 +165,10 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         elif isinstance(data, partition.PartitionData):
             partition.create(self.currentWidget(), data)
 
-        self._selected = []
+        self.reset_selected()
         self.repaint()
         self.save_all_tab_data()
-        self._set_stylesheet()
+        self.set_stylesheet()
         # カットの場合は貼り付けは一度だけ
         if self._cut_flag is True:
             self._clipboard = None
@@ -173,21 +176,24 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _cut(self):
         self._copy()
-        self.delete_parts(self._selected[0])
-        self._selected = []
+        self.delete_parts(self.selected[0])
+        self.reset_selected()
         self._cut_flag = True
 
     def _delete(self):
-        for s in self._selected:
+        for s in self.selected:
             self.delete_parts(s)
-        self._selected = []
+        self.reset_selected()
         self.save_all_tab_data()
 
     def _edit(self):
-        if len(self._selected) != 1:
-            print('Only standalone selection is supported.')
+        if len(self.selected) != 1:
+            # print('Only standalone selection is supported.')
+            self.multi_edit_view = multi_edit.MultiEditorDialog(self)
+            self.multi_edit_view.sync_list()
+            self.multi_edit_view.show()
             return
-        parts = self._selected[0]
+        parts = self.selected[0]
 
         if isinstance(parts.data, button.ButtonData):
             data, _result = button_setting.SettingDialog.get_data(self, parts.data)
@@ -210,19 +216,14 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         その対策として、全てのパーツを作り直すことでこれを回避している。
         '''
         # self.repaint()
-        _data = self.currentWidget().get_all_parts_dict()
-        self.currentWidget().delete_all_parts()
-        self.currentWidget().create_parts_from_dict(_data)
-
-        self._set_stylesheet()
-        self.save_all_tab_data()
+        self.current_tab_widget_refresh()
 
     def _add_button(self):
         data = button.get_default()
         data.position = self._context_pos
         if self.right_drag:
             data.position_x = self.right_drag_rect.x()
-            data.position_y =self.right_drag_rect.y() - self.sizeHint().height()
+            data.position_y = self.right_drag_rect.y() - self.sizeHint().height()
 
             _w = self.right_drag_rect.width()
             _h = self.right_drag_rect.height()
@@ -239,7 +240,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         self.create_button(data)
         self.save_all_tab_data()
-        self._set_stylesheet()
+        self.set_stylesheet()
 
     def _add_partition(self):
         data = partition.get_default()
@@ -263,7 +264,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             print("Cancel.")
             return None
         data_obj.create(self.currentWidget(), data)
-        self._selected = []
+        self.reset_selected()
         self.repaint()
         return data
 
@@ -296,7 +297,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             return None
         _w.delete_all_button()
         _w.create_button_from_instance(parts)
-        self._set_stylesheet()
+        self.set_stylesheet()
         self.save_all_tab_data()
 
     def _undo(self):
@@ -331,7 +332,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self._delete_all_tab()
         self._make_json_data_to_tab(data)
         self.currentChanged.connect(self._current_tab_change)
-        self._set_stylesheet()
+        self.set_stylesheet()
         self.save_all_tab_data(save_history=save_history)
 
     def _delete_all_tab(self):
@@ -419,10 +420,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         )
         if _status == QtWidgets.QMessageBox.Yes:
             _data = lib.not_escape_json_load(file_name[0])
-            self.currentWidget().delete_all_parts()
-            self.currentWidget().create_parts_from_dict(_data)
-            self._set_stylesheet()
-            self.save_all_tab_data()
+            self.current_tab_widget_refresh(new_widget_data=_data)
 
     def _reference_tab(self):
         _p = os.environ.get('MAYA_APP_DIR')
@@ -456,17 +454,12 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         self.currentWidget().reference = file_name[0]
         _data = lib.not_escape_json_load(file_name[0])
-        self.currentWidget().delete_all_parts()
-        self.currentWidget().create_parts_from_dict(_data)
-        self._set_stylesheet()
-        self.save_all_tab_data()
+        self.current_tab_widget_refresh(new_widget_data=_data)
 
     def _remove_reference_tab(self):
         if self.currentWidget().reference is not None:
             self.currentWidget().reference = None
-            self.currentWidget().delete_all_parts()
-            self._set_stylesheet()
-            self.save_all_tab_data()
+            self.current_tab_widget_refresh(delete_widget=True)
             self.setTabIcon(self.currentIndex(), QtGui.QIcon())
 
     # -----------------------
@@ -537,6 +530,15 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self._operation_history.insert(0, ls)
         self._current_operation_history = 0
 
+        if self.multi_edit_view is not None:
+            self.multi_edit_view.sync_list()
+
+    def reset_selected(self):
+        self.selected = []
+
+    def get_button_widgets(self):
+        return self.currentWidget().findChildren(button.ButtonWidget)
+
     # -----------------------
     # Event
     # -----------------------
@@ -591,7 +593,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
             modifiers = QtWidgets.QApplication.keyboardModifiers()
 
-            if len(self._selected) > 1:
+            if len(self.selected) > 1:
                 # 複数選択されていたらまとめて移動を優先
                 if modifiers == QtCore.Qt.ControlModifier:
                     # リサイズ
@@ -620,7 +622,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if self.edit_lock is True or self.currentWidget().reference is not None:
             return
         # パーツを移動中の描画更新
-        if len(self._selected) > 0:
+        if len(self.selected) > 0:
             if self.parts_resizing:
                 # リサイズ
                 self._selected_parts_resize(event.pos(), False, False)
@@ -682,8 +684,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if event.button() == QtCore.Qt.MiddleButton:
 
             self._select_cursor_pos_parts()
-            if len(self._selected) <= 1:
-                self._set_stylesheet()
+            if len(self.selected) <= 1:
+                self.set_stylesheet()
 
             modifiers = QtWidgets.QApplication.keyboardModifiers()
             if modifiers == QtCore.Qt.ControlModifier:
@@ -726,7 +728,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         else:
             # パーツを移動中の描画更新
-            if len(self._selected) > 0:
+            if len(self.selected) > 0:
                 if self.parts_resizing:
                     # リサイズ
                     self._selected_parts_resize(event.pos(), False, False)
@@ -758,14 +760,12 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if self.edit_lock is True or self.currentWidget().reference is not None:
             return
 
-        print event.button()
-
         if event.button() == QtCore.Qt.LeftButton:
             if not self._origin:
                 self._origin = event.pos()
             rect = QtCore.QRect(self._origin, event.pos()).normalized()
             self._get_parts_in_rectangle(rect)
-            self._set_stylesheet()
+            self.set_stylesheet()
             self.band = None
 
         # 選択中のパーツを移動/リサイズ
@@ -791,6 +791,9 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.parts_moving = False
         self.parts_resizing = False
         self.repaint()
+
+        if self.multi_edit_view is not None:
+            self.multi_edit_view.parent_select_synchronize()
 
     def paintEvent(self, event):
         _cw = self.currentWidget()
@@ -837,12 +840,25 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # -----------------------
     # Others
     # -----------------------
+    def current_tab_widget_refresh(self, delete_widget=False, new_widget_data=None):
+        if new_widget_data is None:
+            data = self.currentWidget().get_all_parts_dict()
+        else:
+            data = new_widget_data
+
+        self.currentWidget().delete_all_parts()
+
+        if not delete_widget:
+            self.currentWidget().create_parts_from_dict(data)
+        self.set_stylesheet()
+        self.save_all_tab_data()
+
     def _selected_parts_resize(self, after_pos, save=True, data_pos_update=True):
         if self._parts_resize_mode is None:
             return
         # 選択中のパーツをリサイズ
-        if len(self._selected) > 0:
-            for p in self._selected:
+        if len(self.selected) > 0:
+            for p in self.selected:
                 self._parts_resize(p, after_pos, data_pos_update)
             if save is True:
                 self._origin = QtCore.QPoint()
@@ -960,8 +976,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _selected_parts_move(self, after_pos, save=True, data_pos_update=True):
         # 選択中のパーツを移動
-        if len(self._selected) > 0:
-            for p in self._selected:
+        if len(self.selected) > 0:
+            for p in self.selected:
                 self._parts_move(p, after_pos, data_pos_update)
             if save is True:
                 self._origin = QtCore.QPoint()
@@ -988,7 +1004,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             parts.data.position_y = _y
 
     def _get_parts_in_rectangle(self, rect):
-        self._selected = []
+        self.reset_selected()
         chidren = []
         chidren.extend(self.currentWidget().findChildren(button.ButtonWidget))
         chidren.extend(self.currentWidget().findChildren(partition.PartitionWidget))
@@ -997,7 +1013,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             # 矩形内に位置しているかを判定
             if rect.intersects(self._get_parts_absolute_geometry(child)) is False:
                 continue
-            self._selected.append(child)
+            self.selected.append(child)
 
     def _get_parts_absolute_geometry(self, parts):
         '''
@@ -1009,7 +1025,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         geo = QtCore.QRect(point, geo.size())
         return geo
 
-    def _set_stylesheet(self):
+    def set_stylesheet(self):
         css = ''
 
         # タブ
@@ -1026,7 +1042,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if self.edit_lock is True:
             pass
         elif self.currentWidget().reference is None:
-            for s in self._selected:
+            for s in self.selected:
                 css += '#' + s.objectName() + '{'
                 if isinstance(s.data, button.ButtonData):
                     if s.data.use_bgcolor is True:
@@ -1046,21 +1062,24 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self._context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
         # パーツが矩形で選択されていなければマウス位置の下のボタンを選択しておく
         # 1個選択状態の場合は選択し直した方が直感的な気がする
-        if len(self._selected) <= 1:
-            _l = len(self._selected)
-            _s = self._selected
+        if len(self.selected) <= 1:
+            _l = len(self.selected)
+            _s = self.selected
 
             rect = QtCore.QRect(pos, pos)
             # ドッキングしてる状態だとタブの高さを考慮したほうがいい！？なんじゃこの挙動は…
             if self.isFloating() is False and self.dockArea() is not None:
                 rect = QtCore.QRect(self._context_pos, self._context_pos)
             self._get_parts_in_rectangle(rect)
-            if len(self._selected) > 1:
-                self._selected = [self._selected[0]]
-            if _l == 1 and len(self._selected) == 0:
-                self._selected = _s
-            self._set_stylesheet()
+            if len(self.selected) > 1:
+                self.selected = [self.selected[0]]
+            if _l == 1 and len(self.selected) == 0:
+                self.selected = _s
+            self.set_stylesheet()
             self.repaint()
+
+            if self.multi_edit_view is not None:
+                self.multi_edit_view.parent_select_synchronize()
 
 
 class Image(QtWidgets.QLabel):
