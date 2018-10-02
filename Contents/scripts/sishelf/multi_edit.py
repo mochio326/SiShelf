@@ -264,8 +264,8 @@ class MultiEditorDialog(QtWidgets.QDialog):
         self.view = EditorTableView()
         # self.view.setStyleSheet("gridline-color: rgb(191, 191, 191)")
         # self.view.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
-        selection = self.view.selectionModel()
-        selection.selectionChanged.connect(self.list_selection_changed)
+        self.selection = self.view.selectionModel()
+        self.selection.selectionChanged.connect(self.list_selection_changed)
         self.view.model.dataChanged.connect(self.list_data_changed)
 
 
@@ -302,6 +302,7 @@ class MultiEditorDialog(QtWidgets.QDialog):
 
     # Shelfの選択状況と同期させる
     def parent_select_synchronize(self):
+        self.selection.selectionChanged.disconnect()
         _parent_sel = self.parent().selected
         _row_count = self.view.model.rowCount(None)
         rows = []
@@ -315,7 +316,10 @@ class MultiEditorDialog(QtWidgets.QDialog):
         self.view.selectionModel().clear()
         indexes = [self.view.model.index(r, 0) for r in rows]
         mode = QtCore.QItemSelectionModel.Select | QtCore.QItemSelectionModel.Rows
+
         [self.view.selectionModel().select(i, mode) for i in indexes]
+        self.selection.selectionChanged.connect(self.list_selection_changed)
+
 
 def main():
     path = lib.get_tab_data_path()
