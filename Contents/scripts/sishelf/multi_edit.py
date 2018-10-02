@@ -70,8 +70,6 @@ class ButtonInfo(Columns):
             self.widget.data.__dict__[item] = self.__dict__[item].value
             button.update(self.widget, self.widget.data)
 
-            print self.__dict__[item].value, type(self.__dict__[item].value)
-
 
 class EditTableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent=None):
@@ -279,7 +277,6 @@ class MultiEditorDialog(QtWidgets.QDialog):
         for item in self.view.model.items:
             item.widget_data_refresh()
         self.parent().current_tab_widget_refresh()
-        print self.parent().currentWidget().get_all_parts_dict()
 
     def list_selection_changed(self, selected, deselected):
         '''
@@ -290,6 +287,8 @@ class MultiEditorDialog(QtWidgets.QDialog):
         for index in self.view.selectionModel().selectedIndexes():
             value = index.model().data(index, SORT_ROLE)
             self.parent().selected.append(value)
+        #行が選択されていたら列の数だけappendされていたので同じものはまとめとく
+        self.parent().selected = list(set(self.parent().selected))
         self.parent().set_stylesheet()
         self.parent().repaint()
 

@@ -189,9 +189,10 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def _edit(self):
         if len(self.selected) != 1:
             # print('Only standalone selection is supported.')
-            self.multi_edit_view = multi_edit.MultiEditorDialog(self)
-            self.multi_edit_view.sync_list()
-            self.multi_edit_view.show()
+            if self.multi_edit_view is None:
+                self.multi_edit_view = multi_edit.MultiEditorDialog(self)
+                self.multi_edit_view.sync_list()
+                self.multi_edit_view.show()
             return
         parts = self.selected[0]
 
@@ -522,6 +523,9 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         path = self._get_save_file_path()
         lib.not_escape_json_dump(path, ls)
 
+        if self.multi_edit_view is not None:
+            self.multi_edit_view.sync_list()
+
         if not save_history:
             return
         # Undo Redo用の操作
@@ -529,9 +533,6 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             del self._operation_history[0:self._current_operation_history]
         self._operation_history.insert(0, ls)
         self._current_operation_history = 0
-
-        if self.multi_edit_view is not None:
-            self.multi_edit_view.sync_list()
 
     def reset_selected(self):
         self.selected = []
