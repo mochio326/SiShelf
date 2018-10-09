@@ -118,6 +118,16 @@ class ButtonData(lib.PartsData):
         self.xpop_visibility = True
         self.xpop_spacer = False
 
+        self.select_parts = ''
+        self.mirror_parts = ''
+        self.mirror_posx = 1
+        self.mirror_posy = 1
+        self.mirror_posz = 1
+        self.mirror_rotx = 1
+        self.mirror_roty = 1
+        self.mirror_rotz = 1
+
+
     icon = property(doc='icon property')
     @icon.getter
     def icon(self):

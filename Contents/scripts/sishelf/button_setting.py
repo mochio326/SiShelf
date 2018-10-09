@@ -78,6 +78,7 @@ class LineNumberTextEdit(QtWidgets.QTextEdit):
 
 
 class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
+
     def __init__(self, parent, data):
         super(SettingDialog, self).__init__(parent)
         self.setupUi(self)
@@ -135,6 +136,9 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
 
         self.combo_type.currentIndexChanged.connect(self._type_changed)
 
+        self.checkbox_label_color.stateChanged.connect(func)
+
+
         # テキストエリアに日本語を入力中（IME未確定状態）にMayaがクラッシュする場合があった。
         # textChanged.connect をやめ、例えば focusOut や エンターキー押下を発火条件にすることで対応
         # self.text_label.textChanged.connect(func)
@@ -160,18 +164,30 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.text_script_code.focusOutEvent = _focus_out
         self.text_script_code.keyPressEvent = functools.partial(_key_press, widget=self.text_script_code)
 
-
-    def _type_changed(self):
+    def __delete_menulist_widget(self):
         _parent = self.menulist_layout
-        _idx = self.combo_type.currentIndex()
         _widget = self.menulist_widget
-        if _idx == 0:
-            if _widget is not None:
+        if _widget is not None:
+            try:
                 _parent.removeWidget(_widget)
                 _widget.setVisible(False)
                 _widget.setParent(None)
                 _widget.deleteLater()
-        else:
+            except:
+                pass
+
+    def _type_changed(self):
+        _parent = self.menulist_layout
+        _idx = self.combo_type.currentIndex()
+        if _idx == 0:
+            self.__delete_menulist_widget()
+            self.groupbox_script_commands.setVisible(True)
+            self.groupbox_synoptic.setVisible(False)
+
+        elif _idx == 1:
+            self.groupbox_script_commands.setVisible(True)
+            self.groupbox_synoptic.setVisible(False)
+
             _ls = []
             for _tmp in self.menu_data:
                 _ls.append(_tmp['label'])
@@ -184,7 +200,7 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
             self.menulist_widget.setMaximumSize(QtCore.QSize(200, 16777215))
             _parent.addWidget(self.menulist_widget)
             self.menulist_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-            self.menulist_widget.customContextMenuRequested.connect(self._menulist_context)
+            self.menulist_widget.customContextMenuRequested.connect(self. _menulist_context)
             menulist_sel_model = self.menulist_widget.selectionModel()
             menulist_sel_model.selectionChanged.connect(self._menulist_changed)
             self.menulist_widget.setCurrentIndex(self.menulist_model.index(0))
@@ -193,7 +209,13 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
             self.dele.changeValue.connect(self._menulist_change_value)
             self.menulist_widget.setItemDelegate(self.dele)
 
+        elif _idx == 2:
+            self.__delete_menulist_widget()
+            self.groupbox_script_commands.setVisible(False)
+            self.groupbox_synoptic.setVisible(True)
+
         self._apply_script_commands_data()
+        self.resize(self.width(), 50)
 
     def _menulist_change_value(self, idx, value):
         self.menu_data[idx]['label'] = value
@@ -242,7 +264,6 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         _sel = self.menulist_model.createIndex(_i + 1, 0)
         self.menulist_widget.setCurrentIndex(_sel)
 
-
     def _menulist_delete(self):
         _index = self.menulist_widget.currentIndex()
         self.menulist_model.removeRow(_index.row())
@@ -267,12 +288,13 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         _idx = self.combo_type.currentIndex()
         if _idx == 0:  # ノーマルボタン
             _d = self.normal_data
-        else:  # メニューボタン
+        elif _idx == 1:  # メニューボタン
             _list_idx = self.menulist_widget.currentIndex()
             if len(self.menu_data) == 0:
                 self._menulist_add()
             _d = self.menu_data[_list_idx.row()]
-
+        if _idx == 2:  # シノプティックボタン
+            _d = self.normal_data
         self.text_script_code.setPlainText(_d['code'])
         self.line_externalfile.setText(_d['externalfile'])
         index = self.combo_script_language.findText(_d['script_language'])
@@ -315,6 +337,15 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
         self.text_label.setPlainText(data.label)
         self.text_tooltip.setPlainText(data.tooltip)
         self.checkbox_tooltip.setChecked(data.bool_tooltip)
+
+        self.line_selectparts.setText(data.select_parts)
+        self.line_mirrorparts.setText(data.mirror_parts)
+        self.spinbox_posx.setValue(data.mirror_posx)
+        self.spinbox_posy.setValue(data.mirror_posy)
+        self.spinbox_posz.setValue(data.mirror_posz)
+        self.spinbox_rotx.setValue(data.mirror_rotx)
+        self.spinbox_roty.setValue(data.mirror_roty)
+        self.spinbox_rotz.setValue(data.mirror_rotz)
 
         self.line_icon_file.setText(data.icon_file)
         self.spinbox_btn_position_x.setValue(data.position_x)
@@ -398,6 +429,15 @@ class SettingDialog(QtWidgets.QDialog, button_setting_ui.Ui_Form):
 
         data.bool_tooltip = self.checkbox_tooltip.isChecked()
         data.tooltip = self.text_tooltip.toPlainText()
+
+        data.select_parts = self.line_selectparts.text()
+        data.mirror_parts = self.line_mirrorparts.text()
+        data.mirror_posx = self.spinbox_posx.value()
+        data.mirror_posy = self.spinbox_posy.value()
+        data.mirror_posz = self.spinbox_posz.value()
+        data.mirror_rotx = self.spinbox_rotx.value()
+        data.mirror_roty = self.spinbox_roty.value()
+        data.mirror_rotz = self.spinbox_rotz.value()
 
         data.icon_file = self.line_icon_file.text()
         data.position_x = self.spinbox_btn_position_x.value()
