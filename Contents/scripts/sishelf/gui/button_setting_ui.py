@@ -1,13 +1,7 @@
 # -*- coding: utf-8 -*-
+from ..vendor import Qt
+from ..vendor.Qt import QtCore, QtGui, QtWidgets
 
-# Form implementation generated from reading ui file 'C:\Users\naoya\Desktop\button_setting.ui'
-#
-# Created: Wed Oct 10 00:06:53 2018
-#      by: pyside2-uic  running on PySide2 2.0.0~alpha0
-#
-# WARNING! All changes made in this file will be lost!
-
-from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
