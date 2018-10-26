@@ -8,11 +8,13 @@ from . import lib
 from . import shelf_option
 from . import xpop
 from . import multi_edit
+from . import synoptic
 
 import json
 import os
 import os.path
 import pymel.core as pm
+import maya.cmds as cmds
 import re
 import copy
 
@@ -60,11 +62,12 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.parts_moving = False
         self.parts_resizing = False
         self.multi_edit_view = None
+        self.select_parts_script_job = None
         self.selected = None
         self.reset_selected()
 
         self._origin = None
-        self._floating_save = False
+        # self._floating_save = False
         self._clipboard = None
         self._context_pos = QtCore.QPoint()
         self._cut_flag = False
@@ -79,6 +82,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.currentChanged.connect(self._current_tab_change)
         self.tabBar().tabMoved.connect(self._tab_moved)
         self._regeneration_all_tab()
+
+        # self.installEventFilter(self)
 
     def _current_tab_change(self):
         self.reset_selected()
@@ -804,13 +809,30 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         else:
             _cw.delete_guide_widget()
 
-    def closeEvent(self, event):
+    def eventFilter(self, obj, event):
+        print event.type()
+        return False
+
+    def hideEvent(self, event):
+        if not cmds.scriptJob(ex=self.select_parts_script_job):
+            return
+        cmds.scriptJob(kill=self.select_parts_script_job, force=True)
+        self.select_parts_script_job = None
         if self.edit_lock is False:
-            # 2017以前だとhideEventにすると正常にウインドウサイズなどの情報が取ってこれない
             if lib.maya_version() < 2017:
-                if self._floating_save is False:
-                    lib.floating_save(self)
-                self._floating_save = True
+                lib.floating_save(self)
+                #if self._floating_save is False:
+                #    lib.floating_save(self)
+                #self._floating_save = True
+
+    def showEvent(self, event):
+        if self.select_parts_script_job is not None:
+            return
+        self.select_parts_script_job = cmds.scriptJob(e=["SelectionChanged", lambda: self.set_stylesheet()],
+                                                      protected=True)
+
+    def closeEvent(self, event):
+        self.hideEvent(event)
         # superだと2017でエラーになったため使用中止
         # super(SiShelfWidget, self).closeEvent(event)
         QtWidgets.QWidget.close(self)
@@ -1016,6 +1038,16 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 continue
             self.selected.append(child)
 
+        # ウィジェット選択とノード選択を同期
+        select_nodes = []
+        for _s in self.selected:
+            if not isinstance(_s, button.ButtonWidget):
+                continue
+            if _s.data.type_ != 2:
+                continue
+            select_nodes.extend(_s.data.select_parts.split(','))
+        synoptic.node_select(select_nodes)
+
     def _get_parts_absolute_geometry(self, parts):
         '''
         type:ShelfButton.ButtonWidget -> QtCore.QSize
@@ -1049,6 +1081,20 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                     if s.data.use_bgcolor is True:
                         css += 'background:' + s.data.bgcolor + ';'
                 css += 'border-color:red; border-style:solid; border-width:1px;}'
+
+            # synopticボタンの装飾
+            for b in buttons:
+                if b.data.type_ != 2:
+                    continue
+                css += '#' + b.objectName() + '{border-radius: 10px;}'
+                _c = b.selected_node_check()
+                if _c == 1:
+                    # 一部選択されている
+                    css += '#' + b.objectName() + '{border-color:orange; border-style:solid; border-width:2px;}'
+                elif _c == 2:
+                    # 全て選択されている
+                    css += '#' + b.objectName() + '{border-color:yellow; border-style:solid; border-width:2px;}'
+
         self.setStyleSheet(css)
 
     def _select_cursor_pos_parts(self):
@@ -1061,26 +1107,36 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         pos = QtCore.QPoint(cursor.x() - _ui['x'], cursor.y() - _ui['y'])
         # タブバーの高さを考慮 （ただ実際のタブの大きさと数ピクセルずれてる気がする
         self._context_pos = QtCore.QPoint(pos.x(), pos.y() - self.sizeHint().height())
+
+        if len(self.selected) > 1:
+            return
+
         # パーツが矩形で選択されていなければマウス位置の下のボタンを選択しておく
         # 1個選択状態の場合は選択し直した方が直感的な気がする
-        if len(self.selected) <= 1:
-            _l = len(self.selected)
-            _s = self.selected
+        _l = len(self.selected)
+        _s = self.selected
 
-            rect = QtCore.QRect(pos, pos)
-            # ドッキングしてる状態だとタブの高さを考慮したほうがいい！？なんじゃこの挙動は…
-            if self.isFloating() is False and self.dockArea() is not None:
-                rect = QtCore.QRect(self._context_pos, self._context_pos)
-            self._get_parts_in_rectangle(rect)
-            if len(self.selected) > 1:
-                self.selected = [self.selected[0]]
-            if _l == 1 and len(self.selected) == 0:
-                self.selected = _s
-            self.set_stylesheet()
-            self.repaint()
+        rect = QtCore.QRect(pos, pos)
+        # ドッキングしてる状態だとタブの高さを考慮したほうがいい！？なんじゃこの挙動は…
+        if self.isFloating() is False and self.dockArea() is not None:
+            rect = QtCore.QRect(self._context_pos, self._context_pos)
+        self._get_parts_in_rectangle(rect)
+        if len(self.selected) > 1:
+            self.selected = [self.selected[0]]
+        if _l == 1 and len(self.selected) == 0:
+            self.selected = _s
+        self.set_stylesheet()
+        self.repaint()
 
-            if self.multi_edit_view is not None:
-                self.multi_edit_view.parent_select_synchronize()
+        if self.multi_edit_view is not None:
+            self.multi_edit_view.parent_select_synchronize()
+
+        # Shelfとビューの選択を同期
+        for _s in self.selected:
+            if _s.data.type_ != 2:
+                continue
+            print _s.data.select_parts
+
 
 
 class Image(QtWidgets.QLabel):

@@ -4,7 +4,7 @@ import maya.cmds as cmds
 
 from .vendor.Qt import QtCore, QtGui, QtWidgets
 from . import lib
-
+from . import synoptic
 resize_mode = None
 
 
@@ -69,8 +69,10 @@ class ButtonWidget(QtWidgets.QToolButton):
                     code = self.data.code
                 source_type = self.data.script_language.lower()
                 lib.script_execute(code, source_type)
-            else:
+            elif self.data.type_ == 1:
                 self._context_menu()
+            elif self.data.type_ == 2:
+                synoptic.node_select(self.data.select_parts.split(','))
 
         QtWidgets.QToolButton.mouseReleaseEvent(self, event)
 
@@ -80,6 +82,26 @@ class ButtonWidget(QtWidgets.QToolButton):
         menu_data_context(_menu, self.data.menu_data)
         cursor = QtGui.QCursor.pos()
         _menu.exec_(cursor)
+
+    def selected_node_check(self):
+        '''
+        synoptic buttoの場合、現在のシーンの選択が自身の対象ノードが含まれているか
+        :return:
+        '''
+        if self.data.type_ != 2:
+            return False
+        _selected = cmds.ls(sl=True)
+        _src_set = set(_selected)
+        select_parts_list = self.data.select_parts.split(',')
+        _tag_set = set(select_parts_list)
+        _matched_list = list(_src_set & _tag_set)
+        if len(_matched_list) > 0:
+            # 全てのパーツが選択されている
+            if len(select_parts_list) == len(_matched_list):
+                return 2
+            # 一部のみ選択されている
+            return 1
+        return 0
 
 
 class ButtonData(lib.PartsData):
@@ -91,7 +113,7 @@ class ButtonData(lib.PartsData):
         self.bool_tooltip = True
         self.code = code
         self.script_language = 'Python'
-        self.type_ = 0  # 0:def 1:MenuButton
+        self.type_ = 0  # 0:def 1:MenuButton 2:SynopticButton
         self.size_flag = False
         self.icon_file = ':/polySphere.png'
 
