@@ -53,8 +53,8 @@ class PartsData(object):
 
     @position.setter
     def position(self, data):
-        self.position_x = data.x()
-        self.position_y = data.y()
+        self.position_x = (data.x() - self.temp_position_offset_x) / self.temp_scale
+        self.position_y = (data.y() - self.temp_position_offset_y) / self.temp_scale
 
     size = property(doc='size property')
     @size.getter
@@ -62,6 +62,11 @@ class PartsData(object):
         if self.size_flag is False:
             return None
         return QtCore.QSize(self.width * self.temp_scale, self.height * self.temp_scale)
+
+    @size.setter
+    def size(self, data):
+        self.width = int(data.width() / self.temp_scale)
+        self.height = int(data.height() / self.temp_scale)
 
 
 def button_css(buttons, css):

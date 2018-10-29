@@ -680,6 +680,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self._offset_position_x_temp = _cw.position_offset_x
                 self._offset_position_y_temp = _cw.position_offset_y
                 self._scale_temp = _cw.scale
+                print _cw.scale
                 self.band = None
                 return
 
@@ -745,8 +746,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             _x = self._origin.x() - event.pos().x()
             _y = self._origin.y() - event.pos().y()
             _cw = self.currentWidget()
-            _cw.position_offset_x = self._offset_position_x_temp - _x
-            _cw.position_offset_y = self._offset_position_y_temp - _y
+            _cw.position_offset_x = int(self._offset_position_x_temp - _x)
+            _cw.position_offset_y = int(self._offset_position_y_temp - _y)
             _cw.set_move_and_scale()
 
         if self._scale_change:
@@ -792,6 +793,11 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             pos = self.__right_drag_snap_pos(event.pos(), mode='create')
             rect = QtCore.QRect(self._origin, pos).normalized()
             self.right_drag_rect = rect
+
+        _cw = self.currentWidget()
+        self._offset_position_x_temp = _cw.position_offset_x
+        self._offset_position_y_temp = _cw.position_offset_y
+        self._scale_temp = _cw.scale
 
         self._origin = QtCore.QPoint()
         self.parts_moving = False
@@ -1009,13 +1015,16 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def _parts_move(self, parts, after_pos, data_pos_update=True):
         # ドラッグ中に移動した相対位置を加算
         _rect = QtCore.QRect(self._origin, after_pos)
-        _x = parts.data.position_x + _rect.width()
-        _y = parts.data.position_y + _rect.height()
+        #_x = (parts.data.position_x * self._scale_temp + self._offset_position_x_temp) + _rect.width()
+        #_y = (parts.data.position_y * self._scale_temp + self._offset_position_y_temp) + _rect.height()
+        _x = parts.data.position.x() + _rect.width()
+        _y = parts.data.position.y() + _rect.height()
+        '''
         if _x < 0:
             _x = 0
         if _y < 0:
             _y = 0
-
+        '''
         if self._shelf_option.snap_active is True:
             _x = int(_x / self._shelf_option.snap_width) * self._shelf_option.snap_width
             _y = int(_y / self._shelf_option.snap_height) * self._shelf_option.snap_height
@@ -1023,8 +1032,10 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _position = QtCore.QPoint(_x, _y)
         parts.move(_position)
         if data_pos_update is True:
-            parts.data.position_x = _x
-            parts.data.position_y = _y
+            #parts.data.position_x = _x
+            #parts.data.position_y = _y
+            parts.data.position = _position
+
 
     def _get_parts_in_rectangle(self, rect):
         self.reset_selected()
@@ -1089,10 +1100,10 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 css += '#' + b.objectName() + '{border-radius: 10px;}'
                 _c = b.selected_node_check()
                 if _c == 1:
-                    # 一部選択されている
+                    # 一部選択れている
                     css += '#' + b.objectName() + '{border-color:orange; border-style:solid; border-width:2px;}'
                 elif _c == 2:
-                    # 全て選択されている
+                    # 全て選択れている
                     css += '#' + b.objectName() + '{border-color:yellow; border-style:solid; border-width:2px;}'
 
         self.setStyleSheet(css)
@@ -1132,16 +1143,16 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             self.multi_edit_view.parent_select_synchronize()
 
         # Shelfとビューの選択を同期
+        '''
         for _s in self.selected:
             if _s.data.type_ != 2:
                 continue
             print _s.data.select_parts
+        '''
 
-
-
-class Image(QtWidgets.QLabel):
+class ShelfBackgroundImage(QtWidgets.QLabel):
     def __init__(self, filename=None, parent=None):
-        super(Image, self).__init__(parent)
+        super(ShelfBackgroundImage, self).__init__(parent)
         self.scale = 1
         self.pixmap = QtGui.QPixmap(filename)
         self.set_image()
@@ -1249,9 +1260,9 @@ class ShelfTabWidget(QtWidgets.QWidget):
         return dict_
 
     def create_parts_from_dict(self, data):
-        if data.get('tab') is not None:
-            self.bg_widget = Image(r'C:\Users\naoya\Downloads\vessel\shelf_bg.jpg',self)
-            self.bg_widget.show()
+        #if data.get('bgimage') is not None:
+        self.bg_widget = ShelfBackgroundImage(r'C:\temp\vessel\shelf_bg.jpg', self)
+        self.bg_widget.show()
 
         if data.get('button') is not None:
             for _var in data['button']:
@@ -1304,10 +1315,14 @@ class ShelfTabWidget(QtWidgets.QWidget):
         for child in self.findChildren(button.ButtonWidget):
             # 子widget上でドラッグイベントを開始した際などに位置・サイズの情報が伝達しない場合があるようなので
             # ここで入れなおしておく
+            '''
             child.data.position_x = child.x()
             child.data.position_y = child.y()
             child.data.width = child.width()
             child.data.height = child.height()
+            '''
+            #child.data.position = child
+            #child.data.size = child
             ls.append(child.data)
         return ls
 

@@ -149,7 +149,6 @@ class ButtonData(lib.PartsData):
         self.mirror_roty = 1
         self.mirror_rotz = 1
 
-
     icon = property(doc='icon property')
     @icon.getter
     def icon(self):
