@@ -680,7 +680,6 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                 self._offset_position_x_temp = _cw.position_offset_x
                 self._offset_position_y_temp = _cw.position_offset_y
                 self._scale_temp = _cw.scale
-                print _cw.scale
                 self.band = None
                 return
 
@@ -793,11 +792,6 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             pos = self.__right_drag_snap_pos(event.pos(), mode='create')
             rect = QtCore.QRect(self._origin, pos).normalized()
             self.right_drag_rect = rect
-
-        _cw = self.currentWidget()
-        self._offset_position_x_temp = _cw.position_offset_x
-        self._offset_position_y_temp = _cw.position_offset_y
-        self._scale_temp = _cw.scale
 
         self._origin = QtCore.QPoint()
         self.parts_moving = False
@@ -1015,27 +1009,20 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def _parts_move(self, parts, after_pos, data_pos_update=True):
         # ドラッグ中に移動した相対位置を加算
         _rect = QtCore.QRect(self._origin, after_pos)
-        #_x = (parts.data.position_x * self._scale_temp + self._offset_position_x_temp) + _rect.width()
-        #_y = (parts.data.position_y * self._scale_temp + self._offset_position_y_temp) + _rect.height()
         _x = parts.data.position.x() + _rect.width()
         _y = parts.data.position.y() + _rect.height()
-        '''
-        if _x < 0:
-            _x = 0
-        if _y < 0:
-            _y = 0
-        '''
+
+        _cw = self.currentWidget()
         if self._shelf_option.snap_active is True:
-            _x = int(_x / self._shelf_option.snap_width) * self._shelf_option.snap_width
-            _y = int(_y / self._shelf_option.snap_height) * self._shelf_option.snap_height
+            snap_unit_x = int((self._shelf_option.snap_width * _cw.scale))
+            snap_unit_y = int((self._shelf_option.snap_height * _cw.scale))
+            _x = int(_x / snap_unit_x) * snap_unit_x + _cw.position_offset_x % snap_unit_x
+            _y = int(_y / snap_unit_y) * snap_unit_y + _cw.position_offset_y % snap_unit_y
 
         _position = QtCore.QPoint(_x, _y)
         parts.move(_position)
         if data_pos_update is True:
-            #parts.data.position_x = _x
-            #parts.data.position_y = _y
             parts.data.position = _position
-
 
     def _get_parts_in_rectangle(self, rect):
         self.reset_selected()
@@ -1142,13 +1129,6 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if self.multi_edit_view is not None:
             self.multi_edit_view.parent_select_synchronize()
 
-        # Shelfとビューの選択を同期
-        '''
-        for _s in self.selected:
-            if _s.data.type_ != 2:
-                continue
-            print _s.data.select_parts
-        '''
 
 class ShelfBackgroundImage(QtWidgets.QLabel):
     def __init__(self, filename=None, parent=None):
@@ -1213,17 +1193,17 @@ class GuidePaintWidget(QtWidgets.QWidget):
         pen.setStyle(QtCore.Qt.DashDotLine)
         painter.setPen(pen)
 
-        snap_unit_x = self._shelf_option.snap_width
-        snap_unit_y = self._shelf_option.snap_height
+        snap_unit_x = int((self._shelf_option.snap_width * self.parent().scale))
+        snap_unit_y = int((self._shelf_option.snap_height * self.parent().scale))
 
         # 横線
         for i in range(self.height() / snap_unit_y + 1):
-            _h = snap_unit_y * i
+            _h = snap_unit_y * i + self.parent().position_offset_y % snap_unit_x
             line = QtCore.QLine(QtCore.QPoint(0, _h), QtCore.QPoint(self.width(), _h))
             painter.drawLine(line)
         # 縦線
         for i in range(self.width() / snap_unit_x + 1):
-            _w = snap_unit_x * i
+            _w = snap_unit_x * i + self.parent().position_offset_x % snap_unit_y
             line = QtCore.QLine(QtCore.QPoint(_w, 0), QtCore.QPoint(_w, self.height()))
             painter.drawLine(line)
         painter.restore()
