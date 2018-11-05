@@ -228,23 +228,31 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         data = button.get_default()
         data.position = self._context_pos
         if self.right_drag:
-            data.position_x = self.right_drag_rect.x()
-            data.position_y = self.right_drag_rect.y() - self.sizeHint().height()
+            # 存在しないボタンの場合、まずはscaleやオフセットを伝搬する必要がある
+            _cw = self.currentWidget()
+            data.temp_position_offset_x = _cw.position_offset_x
+            data.temp_position_offset_y = _cw.position_offset_y
+            data.temp_scale = _cw.scale
+
+            _x = self.right_drag_rect.x()
+            _y = self.right_drag_rect.y() - self.sizeHint().height()
+            data.position = QtCore.QPoint(_x, _y)
 
             _w = self.right_drag_rect.width()
             _h = self.right_drag_rect.height()
-            if _w != 1 and _h != 1:
-                data.width = _w
-                data.height = _h
             if self._shelf_option.snap_active:
                 if _w == 0:
-                    data.width = self._shelf_option.snap_width
+                    _w = self._shelf_option.snap_width
                 if _h == 0:
-                    data.height = self._shelf_option.snap_height
-
+                    _h = self._shelf_option.snap_height
+            data.size = QtCore.QSize(_w, _h)
             data.size_flag = True
 
-        self.create_button(data)
+        parts = self.create_button(data)
+        parts.move(QtCore.QPoint(_x, _y))
+        if self.right_drag:
+            parts.setFixedSize(_w, _h)
+
         self.save_all_tab_data()
         self.set_stylesheet()
 
@@ -269,10 +277,10 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if _result is not True:
             print("Cancel.")
             return None
-        data_obj.create(self.currentWidget(), data)
+        widget = data_obj.create(self.currentWidget(), data)
         self.reset_selected()
         self.repaint()
-        return data
+        return widget
 
     def _button_default_setting(self):
         data = button.get_default()
@@ -716,9 +724,9 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
         # スナップ機能の際は終了位置をいい感じに加工
         if self._shelf_option.snap_active:
-            _x = int(pos.x() / self._shelf_option.snap_width) * self._shelf_option.snap_width
-            _y = int(pos.y() / self._shelf_option.snap_height) * self._shelf_option.snap_height
+            _x, _y = self.currentWidget().get_nearest_position(pos.x(), pos.y())
             pos = QtCore.QPoint(_x + _offset_pixel, _y + self.sizeHint().height() + _offset_pixel)
+
         return pos
 
     def mouseMoveEvent(self, event):
