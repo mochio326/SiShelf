@@ -17,4 +17,4 @@ def node_select(selectpartslist):
         cmds.select(newselectpartslist, add=True)
     elif modi == 4:
         cmds.select(newselectpartslist, d=True)
-    cmds.setFocus("MayaWindow")
+    #cmds.setFocus("MayaWindow")
