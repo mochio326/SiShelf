@@ -891,10 +891,10 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         if self._parts_resize_mode is None:
             return
 
-        _parts_x = parts.data.position_x
-        _parts_y = parts.data.position_y
-        _parts_w = parts.data.width
-        _parts_h = parts.data.height
+        _parts_x = parts.data.position.x()
+        _parts_y = parts.data.position.y()
+        _parts_w = parts.data.size.width()
+        _parts_h = parts.data.size.height()
 
         # ドラッグ中に移動した相対位置を加減算してリサイズ
         _rect = QtCore.QRect(self._origin, after_pos)
@@ -917,74 +917,74 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             _flip_w = True
             _parts_w = abs(_parts_w)
             if 'right' in self._parts_resize_mode:
-                _parts_x += _rect.width() + parts.data.width
+                _parts_x += _rect.width() + _parts_w
             if 'left' in self._parts_resize_mode:
-                _parts_x -= _rect.width() - parts.data.width
+                _parts_x -= _rect.width() - _parts_w
         if _parts_h < 0:
             _flip_h = True
             _parts_h = abs(_parts_h)
             if 'bottom' in self._parts_resize_mode:
-                _parts_y += _rect.height() + parts.data.height
+                _parts_y += _rect.height() + _parts_h
             if 'top' in self._parts_resize_mode:
-                _parts_y -= _rect.height() - parts.data.height
+                _parts_y -= _rect.height() - _parts_h
 
         # スナップ時の計算。フリップしたかどうかでちょっとずつ計算変わる。。。
+        _cw = self.currentWidget()
         if self._shelf_option.snap_active is True:
             # 位置は固定、横幅だけ変化
             def resize_w():
-                _surplus_x = round(_parts_x % self._shelf_option.snap_width)
-                w = round(
-                    _parts_w / self._shelf_option.snap_width) * self._shelf_option.snap_width - _surplus_x
+                _x, _ = _cw.get_nearest_position(after_pos.x(), None)
+                w = _x - parts.data.position.x()
                 if w == 0:
-                    w = self._shelf_option.snap_width
+                    w = _cw.snap_unit_x
                 return w
 
             # 位置も横幅も変化
             def resize_x():
-                x = round(
-                    _parts_x / self._shelf_option.snap_width) * self._shelf_option.snap_width
-                w = parts.data.position_x - x
+                x, _ = _cw.get_nearest_position(after_pos.x(), None)
+                if x == parts.data.position.x():
+                    x -= _cw.snap_unit_x
+                w = parts.data.position.x() - x
                 return x, w
 
             # 位置は固定、縦幅だけ変化
             def resize_h():
-                _surplus_y = round(_parts_y % self._shelf_option.snap_height)
-                h = round(
-                    _parts_h / self._shelf_option.snap_height) * self._shelf_option.snap_height - _surplus_y
+                _, _y = _cw.get_nearest_position(None, after_pos.y())
+                h = _y - parts.data.position.y()
                 if h == 0:
-                    h = self._shelf_option.snap_height
+                    h = _cw.snap_unit_y
                 return h
 
             # 位置も縦も変化
             def resize_y():
-                y = round(
-                    _parts_y / self._shelf_option.snap_height) * self._shelf_option.snap_height
-                h = parts.data.position_y - y
+                _, y = _cw.get_nearest_position(None, after_pos.y())
+                if parts.data.position.y() == y:
+                    y -= _cw.snap_unit_y
+                h = parts.data.position.y() - y
                 return y, h
 
             if 'right' in self._parts_resize_mode:
-                if _parts_x != parts.data.position_x:
+                if _parts_x != parts.data.position.x():
                     _parts_x, _parts_w = resize_x()
                 else:
                     _parts_w = resize_w()
 
             if 'left' in self._parts_resize_mode:
-                if _parts_x != parts.data.position_x and _flip_w is False:
+                if _parts_x != parts.data.position.x() and _flip_w is False:
                     _parts_x, _parts_w = resize_x()
-                    _parts_w += parts.data.width
                 else:
                     _parts_w = resize_w()
 
             if 'bottom' in self._parts_resize_mode:
-                if _parts_y != parts.data.position_y:
+                if _parts_y != parts.data.position.y():
                     _parts_y, _parts_h = resize_y()
                 else:
                     _parts_h = resize_h()
 
             if 'top' in self._parts_resize_mode:
-                if _parts_y != parts.data.position_y and _flip_h is False:
+                if _parts_y != parts.data.position.y() and _flip_h is False:
                     _parts_y, _parts_h = resize_y()
-                    _parts_h += parts.data.height
+                    _parts_h += parts.data.size.height()
                 else:
                     _parts_h = resize_h()
 
@@ -992,10 +992,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         parts.setFixedSize(_parts_w, _parts_h)
 
         if data_pos_update:
-            parts.data.position_x = _parts_x
-            parts.data.position_y = _parts_y
-            parts.data.width = _parts_w
-            parts.data.height = _parts_h
+            parts.data.position = QtCore.QPoint(_parts_x, _parts_y)
+            parts.data.size = QtCore.QSize(_parts_w, _parts_h)
 
     def _selected_parts_move(self, after_pos, save=True, data_pos_update=True):
         # 選択中のパーツを移動
@@ -1009,15 +1007,12 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     def _parts_move(self, parts, after_pos, data_pos_update=True):
         # ドラッグ中に移動した相対位置を加算
         _rect = QtCore.QRect(self._origin, after_pos)
-        _x = parts.data.position.x() + _rect.width()
-        _y = parts.data.position.y() + _rect.height()
+        _p = parts.data.position
+        _x = _p.x() + _rect.width()
+        _y = _p.y() + _rect.height()
 
-        _cw = self.currentWidget()
         if self._shelf_option.snap_active is True:
-            snap_unit_x = int((self._shelf_option.snap_width * _cw.scale))
-            snap_unit_y = int((self._shelf_option.snap_height * _cw.scale))
-            _x = int(_x / snap_unit_x) * snap_unit_x + _cw.position_offset_x % snap_unit_x
-            _y = int(_y / snap_unit_y) * snap_unit_y + _cw.position_offset_y % snap_unit_y
+            _x, _y = self.currentWidget().get_nearest_position(_x, _y)
 
         _position = QtCore.QPoint(_x, _y)
         parts.move(_position)
@@ -1193,18 +1188,15 @@ class GuidePaintWidget(QtWidgets.QWidget):
         pen.setStyle(QtCore.Qt.DashDotLine)
         painter.setPen(pen)
 
-        snap_unit_x = int((self._shelf_option.snap_width * self.parent().scale))
-        snap_unit_y = int((self._shelf_option.snap_height * self.parent().scale))
+        x, y = self.parent().get_snap_position_list()
 
         # 横線
-        for i in range(self.height() / snap_unit_y + 1):
-            _h = snap_unit_y * i + self.parent().position_offset_y % snap_unit_x
-            line = QtCore.QLine(QtCore.QPoint(0, _h), QtCore.QPoint(self.width(), _h))
+        for _p in y:
+            line = QtCore.QLine(QtCore.QPoint(0, _p), QtCore.QPoint(self.width(), _p))
             painter.drawLine(line)
         # 縦線
-        for i in range(self.width() / snap_unit_x + 1):
-            _w = snap_unit_x * i + self.parent().position_offset_x % snap_unit_y
-            line = QtCore.QLine(QtCore.QPoint(_w, 0), QtCore.QPoint(_w, self.height()))
+        for _p in x:
+            line = QtCore.QLine(QtCore.QPoint(_p, 0), QtCore.QPoint(_p, self.height()))
             painter.drawLine(line)
         painter.restore()
 
@@ -1220,6 +1212,53 @@ class ShelfTabWidget(QtWidgets.QWidget):
         self.scale = 1
         self.position_offset_x = 0
         self.position_offset_y = 0
+        self._shelf_option = shelf_option.OptionData()
+
+    def get_snap_position_list(self):
+        x = []
+        y = []
+        # 横
+        _u_y = self.snap_unit_y
+        for i in range(self.height() / _u_y + 1):
+            y.append(int(round(_u_y * i + self.position_offset_y % _u_y)))
+        # 縦
+        _u_x = self.snap_unit_x
+        for i in range(self.width() / _u_x + 1):
+            x.append(int(round(_u_x * i + self.position_offset_x % _u_x)))
+        return x, y
+
+    def get_nearest_position(self, pos_x=None, pos_y=None):
+        x_list, y_list = self.get_snap_position_list()
+        return self._get_nearest_value(pos_x, x_list), self._get_nearest_value(pos_y, y_list)
+
+    # リスト内から一番近い数値を返す　numpyが使えればもっと簡潔になるのに(´；ω；`)
+    def _get_nearest_value(self, value, int_list):
+        if value is None:
+            return None
+        int_list.sort()
+        if min(int_list) > value:
+            return min(int_list)
+        if max(int_list) < value:
+            return max(int_list)
+        for i in range(len(int_list)):
+            if int_list[i] > value or int_list[i + 1] < value:
+                continue
+            min_difference = abs(value - int_list[i])
+            max_difference = abs(int_list[i + 1] - value)
+            if min_difference < max_difference:
+                return int_list[i]
+            else:
+                return int_list[i + 1]
+
+    snap_unit_x = property(doc='snap_unit_x property')
+    @snap_unit_x.getter
+    def snap_unit_x(self):
+        return int(self._shelf_option.snap_width * self.scale)
+
+    snap_unit_y = property(doc='snap_unit_y property')
+    @snap_unit_y.getter
+    def snap_unit_y(self):
+        return int(self._shelf_option.snap_height * self.scale)
 
     def get_all_parts_dict(self):
         # 指定のタブ以下にあるパーツを取得
@@ -1311,10 +1350,10 @@ class ShelfTabWidget(QtWidgets.QWidget):
         for child in self.findChildren(partition.PartitionWidget):
             # 子widget上でドラッグイベントを開始した際などに位置・サイズの情報が伝達しない場合があるようなので
             # ここで入れなおしておく
-            child.data.position_x = child.x()
-            child.data.position_y = child.y()
-            child.data.width = child.width()
-            child.data.height = child.height()
+            # child.data.position_x = child.x()
+            # child.data.position_y = child.y()
+            # child.data.width = child.width()
+            # child.data.height = child.height()
             ls.append(child.data)
         return ls
 
