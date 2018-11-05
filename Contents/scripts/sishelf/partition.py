@@ -38,7 +38,7 @@ class PartitionWidget(QtWidgets.QWidget):
         painter.setPen(pen)
 
         font = QtGui.QFont()
-        font.setPointSize(self.data.label_font_size)
+        font.setPointSize(self.data.label_font_size_view)
         painter.setFont(font)
 
         # ウィジェットの大きさを計算　上下左右マージンも考慮

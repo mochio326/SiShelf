@@ -14,7 +14,7 @@ class PartsData(object):
     def __init__(self):
         self.use_label = True
         self.label = 'label'
-        self._label_font_size = 10
+        self.label_font_size = 10
         self.position_x = 0
         self.position_y = 0
         self.width = 100
@@ -35,14 +35,10 @@ class PartsData(object):
             save_dict[_k] = _v
         return save_dict
 
-    label_font_size = property(doc='label_font_size property')
-    @label_font_size.getter
-    def label_font_size(self):
-        return self._label_font_size * self.temp_scale
-
-    @label_font_size.setter
-    def label_font_size(self, size):
-        self._label_font_size = size
+    label_font_size_view = property(doc='label_font_size_view property')
+    @label_font_size_view.getter
+    def label_font_size_view(self):
+        return self.label_font_size * self.temp_scale
 
     position = property(doc='position property')
     @position.getter

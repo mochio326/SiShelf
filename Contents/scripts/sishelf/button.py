@@ -201,7 +201,7 @@ def update(widget, data):
         widget.setFixedSize(data.size)
     widget.setText(data.label)
     font = widget.font()
-    font.setPointSize(data.label_font_size)
+    font.setPointSize(data.label_font_size_view)
     widget.setFont(font)
     widget.setToolButtonStyle(data.style)
     if data.bool_tooltip is True:
