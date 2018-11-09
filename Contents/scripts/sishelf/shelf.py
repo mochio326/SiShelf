@@ -98,6 +98,9 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # ContextMenu
     # -----------------------
     def _context_menu(self, event):
+        if self._scale_change:
+            return
+
         _menu = QtWidgets.QMenu()
         # 項目名と実行する関数の設定
         if self.edit_lock is False:
@@ -128,8 +131,14 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             _df = _menu.addMenu('Default setting')
             _df.addAction('Button', self._button_default_setting)
             _df.addAction('Partition', self._partition_default_setting)
+
+            _bi = _menu.addMenu('Background Image')
+            _bi.addAction('Set', self._add_bg_image)
+            _bi.addAction('Delete', self._delete_bg_image)
+
             if self.currentWidget().reference is None:
                 _menu.addAction('XPOP setting', self._xpop_setting)
+
 
             _menu.addSeparator()
             _menu.addAction('Option', self._option)
@@ -249,6 +258,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             data.size_flag = True
 
         parts = self.create_button(data)
+        if parts is None:
+            return
         parts.move(QtCore.QPoint(_x, _y))
         if self.right_drag:
             parts.setFixedSize(_w, _h)
@@ -313,6 +324,24 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         _w.create_button_from_instance(parts)
         self.set_stylesheet()
         self.save_all_tab_data()
+
+    def _add_bg_image(self):
+
+        parent = self
+        dir_path = os.path.expanduser('~') + '/Desktop'
+        caption = 'open image file'
+        filters = "Images (*.png *.gif *.jpg)"
+        selected_filter = "Images (*.png *.gif *.jpg)"
+        options = 0
+        file_obj = QtWidgets.QFileDialog.getOpenFileName(parent, caption, dir_path, filters, selected_filter, options)
+        image_path = file_obj[0]
+
+        self.currentWidget().background_image = image_path
+        self.current_tab_widget_refresh()
+
+    def _delete_bg_image(self):
+        self.currentWidget().background_image = None
+        self.current_tab_widget_refresh()
 
     def _undo(self):
         self._undo_redo_base('undo')
@@ -1215,6 +1244,7 @@ class ShelfTabWidget(QtWidgets.QWidget):
         super(ShelfTabWidget, self).__init__(parent)
         self.reference = None
         self.bg_widget = None
+        self.background_image = None
         self.guide_widget = None
         self.layout = None
         self.scale = 1
@@ -1271,6 +1301,8 @@ class ShelfTabWidget(QtWidgets.QWidget):
     def get_all_parts_dict(self):
         # 指定のタブ以下にあるパーツを取得
         dict_ = {}
+        dict_['background_image'] = self.background_image
+
         # ボタンのデータ
         _b = []
         _ls = self.get_all_button()
@@ -1287,9 +1319,12 @@ class ShelfTabWidget(QtWidgets.QWidget):
         return dict_
 
     def create_parts_from_dict(self, data):
-        #if data.get('bgimage') is not None:
-        self.bg_widget = ShelfBackgroundImage(r'C:\temp\vessel\shelf_bg.jpg', self)
-        self.bg_widget.show()
+        if data.get('background_image') is not None:
+            self.background_image = data.get('background_image')
+            if self.bg_widget is not None:
+                self.delete_parts(self.bg_widget)
+            self.bg_widget = ShelfBackgroundImage(self.background_image, self)
+            self.bg_widget.show()
 
         if data.get('button') is not None:
             for _var in data['button']:
@@ -1326,6 +1361,9 @@ class ShelfTabWidget(QtWidgets.QWidget):
             button.create(self, _l)
 
     def delete_all_parts(self):
+        if self.bg_widget is not None:
+            self.delete_parts(self.bg_widget)
+
         self.delete_all_button()
         self.delete_all_partition()
 
