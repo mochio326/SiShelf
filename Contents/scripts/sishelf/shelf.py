@@ -792,8 +792,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
             _cw = self.currentWidget()
             _cw.scale = self._scale_temp + 0.01 * _x
             # ドラッグしたポイントを基準に拡縮するためのいい感じの式
-            _cw.position_offset_x = self._offset_position_x_temp + self._origin.x() * (self._scale_temp - _cw.scale)
-            _cw.position_offset_y = self._offset_position_y_temp + (self._origin.y() - self.sizeHint().height()) * (self._scale_temp - _cw.scale)
+            _cw.position_offset_x = round(self._offset_position_x_temp + self._origin.x() * (self._scale_temp - _cw.scale))
+            _cw.position_offset_y = round(self._offset_position_y_temp + (self._origin.y() - self.sizeHint().height()) * (self._scale_temp - _cw.scale))
             _cw.set_move_and_scale()
 
         self.repaint()
@@ -1291,12 +1291,12 @@ class ShelfTabWidget(QtWidgets.QWidget):
     snap_unit_x = property(doc='snap_unit_x property')
     @snap_unit_x.getter
     def snap_unit_x(self):
-        return int(self._shelf_option.snap_width * self.scale)
+        return int(round(self._shelf_option.snap_width * self.scale))
 
     snap_unit_y = property(doc='snap_unit_y property')
     @snap_unit_y.getter
     def snap_unit_y(self):
-        return int(self._shelf_option.snap_height * self.scale)
+        return int(round(self._shelf_option.snap_height * self.scale))
 
     def get_all_parts_dict(self):
         # 指定のタブ以下にあるパーツを取得

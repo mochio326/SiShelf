@@ -49,8 +49,8 @@ class PartsData(object):
 
     @position.setter
     def position(self, data):
-        self.position_x = (data.x() - self.temp_position_offset_x) / self.temp_scale
-        self.position_y = (data.y() - self.temp_position_offset_y) / self.temp_scale
+        self.position_x = int((data.x() - self.temp_position_offset_x) / self.temp_scale)
+        self.position_y = int((data.y() - self.temp_position_offset_y) / self.temp_scale)
 
     size = property(doc='size property')
     @size.getter
