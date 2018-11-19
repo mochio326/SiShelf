@@ -9,6 +9,8 @@ from . import shelf_option
 from . import xpop
 from . import multi_edit
 from . import synoptic
+from . import save_screen_shot
+
 
 import json
 import os
@@ -134,6 +136,7 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
             _bi = _menu.addMenu('Background Image')
             _bi.addAction('Set', self._add_bg_image)
+            _bi.addAction('Set(ScreenShot)', self._add_bg_image_from_screen_shot)
             _bi.addAction('Delete', self._delete_bg_image)
 
             if self.currentWidget().reference is None:
@@ -327,6 +330,8 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
 
     def _add_bg_image(self):
 
+        #self.currentWidget().background_image
+
         parent = self
         dir_path = os.path.expanduser('~') + '/Desktop'
         caption = 'open image file'
@@ -335,7 +340,22 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         options = 0
         file_obj = QtWidgets.QFileDialog.getOpenFileName(parent, caption, dir_path, filters, selected_filter, options)
         image_path = file_obj[0]
+        if image_path is '':
+            return
+        self.currentWidget().background_image = image_path
+        self.current_tab_widget_refresh()
 
+    def _add_bg_image_from_screen_shot(self):
+        file_name = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            'Save ScreenShot',
+            os.environ.get('MAYA_APP_DIR'),
+            'BMP Files (*.bmp)'
+        )
+        if not file_name:
+            return
+        image_path = file_name[0]
+        save_screen_shot.SaveScreenShot(image_path)
         self.currentWidget().background_image = image_path
         self.current_tab_widget_refresh()
 
@@ -1363,6 +1383,7 @@ class ShelfTabWidget(QtWidgets.QWidget):
     def delete_all_parts(self):
         if self.bg_widget is not None:
             self.delete_parts(self.bg_widget)
+            self.bg_widget = None
 
         self.delete_all_button()
         self.delete_all_partition()
