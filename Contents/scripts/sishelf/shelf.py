@@ -20,20 +20,11 @@ import maya.cmds as cmds
 import re
 import copy
 
-if lib.maya_version() < 2015:
-    # 2014以下のバージョン用
-    MayaQWidgetDockableMixin = object
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+from maya.app.general.mayaMixin import MayaQWidgetBaseMixin
+import maya.OpenMayaUI as omui
 
-elif lib.maya_version() < 2017:
-    from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-
-elif 2017 <= lib.maya_version() < 2019:
-    # TODO: 新バージョンが出たら確認すること
-    from .patch import m2017
-    MayaQWidgetDockableMixin = m2017.MayaQWidgetDockableMixin2017
-else:
-    from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-
+WINDOW = None
 
 class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     URL = "https://github.com/mochio326/SiShelf"
@@ -1501,9 +1492,19 @@ def popup():
 
 
 def main(x=None, y=None, load_file=None, edit_lock=False):
-    # 画面中央に表示
-    ui = make_ui(load_file=load_file, edit_lock=edit_lock)
-    ui.show()
+    global WINDOW
+    try:
+        WINDOW.close()
+    except:
+        pass
+
+    WINDOW = make_ui(load_file=load_file, edit_lock=edit_lock)
+
+    # 不要なワークスペースコントロールセットを削除
+    try:
+        cmds.deleteUI(lib.TITLE + 'WorkspaceControl')
+    except:
+        pass
 
     _floating = lib.load_floating_data()
     if _floating:
@@ -1514,7 +1515,6 @@ def main(x=None, y=None, load_file=None, edit_lock=False):
         height = None
 
     if lib.maya_version() > 2013:
-
         ui_script = "import sishelf.shelf;sishelf.shelf.restoration_workspacecontrol()"
         # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる
         opts = {
@@ -1522,10 +1522,7 @@ def main(x=None, y=None, load_file=None, edit_lock=False):
             "floating": True,
             "width": width,
             "height": height,
-            # 2017でのバグ回避のため area: left で決め打ちしてしまっているが
-            # 2017未満ではrestoration_docking_ui で area を再設定するため問題ない
-            # 2017 では workspace layout にどこにいるか等の実体がある
-            "area": "left",
+            "area": None,
             "allowedArea": None,
             "x": x,
             "y": y,
@@ -1540,33 +1537,17 @@ def main(x=None, y=None, load_file=None, edit_lock=False):
             "uiScript": ui_script,
             "closeCallback": None
         }
-        ui.setDockableParameters(**opts)
+        WINDOW.setDockableParameters(**opts)
+        WINDOW.show()
 
 
 def restoration_workspacecontrol():
     # workspacecontrolの再現用
-    ui = make_ui()
-    ui.show()
-    ui_script = "import sishelf.shelf;sishelf.shelf.restoration_workspacecontrol()"
-    # 保存されたデータのウインドウ位置を使うとウインドウのバーが考慮されてないのでズレる
-    opts = {
-        "dockable": True,
-        "floating": False,
-        "area": "left",
-        "allowedArea": None,
-        "x": None,
-        "y": None,
-        # below options have been introduced at 2017
-        "widthSizingProperty": None,
-        "heightSizingProperty": None,
-        "initWidthAsMinimum": None,
-        "retain": False,
-        "plugins": None,
-        "controls": None,
-        "uiScript": ui_script,
-        "closeCallback": None
-    }
-    ui.setDockableParameters(**opts)
+    global WINDOW
+    WINDOW = make_ui()
+    restored_control = omui.MQtUtil.getCurrentParent()
+    mixin_ptr = omui.MQtUtil.findControl(WINDOW.objectName())
+    omui.MQtUtil.addWidgetToMayaLayout(long(mixin_ptr), long(restored_control))
 
 
 if __name__ == '__main__':
