@@ -862,16 +862,19 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         return False
 
     def hideEvent(self, event):
-        if not cmds.scriptJob(ex=self.select_parts_script_job):
-            return
-        cmds.scriptJob(kill=self.select_parts_script_job, force=True)
-        self.select_parts_script_job = None
         if self.edit_lock is False:
             if lib.maya_version() < 2017:
                 lib.floating_save(self)
                 #if self._floating_save is False:
                 #    lib.floating_save(self)
                 #self._floating_save = True
+
+        if self.select_parts_script_job is None:
+            return
+        if not cmds.scriptJob(ex=self.select_parts_script_job):
+            return
+        cmds.scriptJob(kill=self.select_parts_script_job, force=True)
+        self.select_parts_script_job = None
 
     def showEvent(self, event):
         if self.select_parts_script_job is not None:
