@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .vendor.Qt import QtCore, QtGui, QtWidgets
+from .vendor.Qt import QtCore, QtGui, QtWidgets,QtCompat
 from . import button_setting
 from . import button
 from . import partition
@@ -17,6 +17,7 @@ import os
 import os.path
 import pymel.core as pm
 import maya.cmds as cmds
+from maya import mel
 import re
 import copy
 
@@ -25,6 +26,33 @@ from maya.app.general.mayaMixin import MayaQWidgetBaseMixin
 import maya.OpenMayaUI as omui
 
 WINDOW = None
+
+class SiShelfShrinkWidget(QtWidgets.QDialog):
+
+    def __init__(self,parent=None,width=35,height=35):
+        window = omui.MQtUtil.mainWindow()
+        main_win = QtCompat.wrapInstance(long(window), QtWidgets.QMainWindow)
+        super(SiShelfShrinkWidget,self).__init__(parent=main_win)
+        self.shelf_widget = parent
+        self.setFixedSize(QtCore.QSize(width, height))
+        self.setWindowFlags(QtCore.Qt.Drawer)
+        self.setWindowTitle(" ")
+        self.show()
+    
+    def paintEvent(self,event):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform)
+        painter.drawPixmap(self.rect(), QtGui.QPixmap(":/bubbles.png"))
+
+    def mousePressEvent(self,event):
+        button = event.button()
+        if button == QtCore.Qt.LeftButton:
+            self.shelf_widget.show()
+            self.deleteLater()
+            cursor = QtGui.QCursor.pos()
+            self.shelf_widget.window().move(cursor.x()-self.shelf_widget.width(),cursor.y()-35)
+        elif button == QtCore.Qt.RightButton:
+            xpop.main()
 
 class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     URL = "https://github.com/mochio326/SiShelf"
@@ -76,7 +104,33 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
         self.tabBar().tabMoved.connect(self._tab_moved)
         self._regeneration_all_tab()
 
+        # NOTE 创建可缩小按钮
+        self.shrink = QtWidgets.QLabel()
+        pixmap = QtGui.QPixmap(":/window_dragCorner.png")
+        pixmap = pixmap.transformed(QtGui.QTransform().scale(-1, 1))
+        self.shrink.setPixmap(pixmap)
+        self.shrink.mousePressEvent = self.popUpShrinkWin
+        
+        # NOTE https://stackoverflow.com/questions/45962073/pyqt5-position-a-widget-at-top-right-corner-of-a-qtextedit
+        layout = QtWidgets.QGridLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.shrink, 0, 1)
+        layout.setColumnStretch(0, 1)
+        layout.setRowStretch(1, 1)
+
         # self.installEventFilter(self)
+
+    def popUpShrinkWin(self,event):
+        button = event.button()
+        if button == QtCore.Qt.LeftButton:
+            self.hide()
+            cursor = QtGui.QCursor.pos()
+            shrink_win = SiShelfShrinkWidget(self)
+            shrink_win.move(cursor.x()-35,cursor.y()-35)
+        elif button == QtCore.Qt.RightButton:
+            xpop.main()
+
+        
 
     def _current_tab_change(self):
         self.reset_selected()
@@ -597,6 +651,32 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
     # Event
     # -----------------------
 
+    def getCurrentShelfButtonData(self,data):
+        gShelfTopLevel = mel.eval("$temp = $gShelfTopLevel")
+        shelves = cmds.shelfTabLayout(gShelfTopLevel,q=1,ca=1)
+        shelf = shelves[cmds.shelfTabLayout(gShelfTopLevel,q=1,selectTabIndex=1) - 1]
+        shelf = cmds.shelfLayout(shelf,query=1,fpn=1)
+        for btn in cmds.shelfLayout(shelf,query=1,ca=1):
+            if cmds.shelfButton(btn,query=1,ex=1):
+                script = cmds.shelfButton(btn,query=1,c=1)
+                if script != data.code:
+                    continue
+                label = cmds.shelfButton(btn,query=1,label=1)
+                icon = cmds.shelfButton(btn,query=1,i=1)
+                source = cmds.shelfButton(btn,query=1,sourceType=1)
+                # NOTE 不是内置图标
+                if cmds.resourceManager(nameFilter=icon):
+                    icon = ":/%s" % icon
+                else:
+                    for path in os.environ['XBMLANGPATH'].split(";"):
+                        icon_path = os.path.join(path,icon)
+                        if os.path.exists(icon_path):
+                            icon = icon_path
+                            break
+                return icon,label,source
+
+        return '','','python'
+
     def dropEvent(self, event):
         if self.edit_lock is True or self.currentWidget().reference is not None:
             return
@@ -641,8 +721,19 @@ class SiShelfWidget(MayaQWidgetDockableMixin, QtWidgets.QTabWidget):
                     data.label = _info.completeBaseName()
                     data.code = ''
 
+            form,typ = _mimedata.formats()
+            if form == 'application/x-maya-data':
+                # NOTE 获取 shelf button
+                icon,label,source = self.getCurrentShelfButtonData(data)
+                data.use_icon = True
+                data.icon_file = icon
+                data.label = label
+                data.script_language = 'Python' if source == 'python' else "MEL"
+
             self.create_button(data)
             self.save_all_tab_data()
+
+        
 
         elif isinstance(event.source(), (button.ButtonWidget, partition.PartitionWidget)):
             modifiers = QtWidgets.QApplication.keyboardModifiers()
@@ -1502,7 +1593,6 @@ def main(x=None, y=None, load_file=None, edit_lock=False):
         pass
 
     WINDOW = make_ui(load_file=load_file, edit_lock=edit_lock)
-
     # 不要なワークスペースコントロールセットを削除
     try:
         cmds.deleteUI(lib.TITLE + 'WorkspaceControl')
@@ -1514,8 +1604,9 @@ def main(x=None, y=None, load_file=None, edit_lock=False):
         width = _floating['width']
         height = _floating['height']
     else:
-        width = None
-        height = None
+        # NOTE 添加默认长宽
+        width = 500
+        height = 200
 
     if lib.maya_version() > 2013:
         ui_script = "import sishelf.shelf;sishelf.shelf.restoration_workspacecontrol()"
@@ -1542,6 +1633,9 @@ def main(x=None, y=None, load_file=None, edit_lock=False):
         }
         WINDOW.setDockableParameters(**opts)
         WINDOW.show()
+        WINDOW.window().resize(width, height)
+        if x is not None and y is not None:
+            WINDOW.window().move(x, y)
 
 
 def restoration_workspacecontrol():
@@ -1551,6 +1645,7 @@ def restoration_workspacecontrol():
     restored_control = omui.MQtUtil.getCurrentParent()
     mixin_ptr = omui.MQtUtil.findControl(WINDOW.objectName())
     omui.MQtUtil.addWidgetToMayaLayout(long(mixin_ptr), long(restored_control))
+
 
 
 if __name__ == '__main__':
